@@ -1,5 +1,5 @@
 {
-    "sketch": "test-bluetooth.ino",
+    "sketch": "main/main.ino",
     "board": "arduino:mbed:nano33ble",
     "port": "/dev/tty.usbmodem14101"
 }
