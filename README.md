@@ -5,10 +5,10 @@ Head Tracker based on [Arduino Nano 33 BLE](https://store.arduino.cc/arduino-nan
 - FrSky X-Lite Pro (OpenTX version 2.3.11)
 
 ## Dependencies
-- [ArduinoBLE](https://github.com/ysoldak/ArduinoBLE/tree/cccd_hack), custom version ([diff](https://github.com/ysoldak/ArduinoBLE/compare/master...ysoldak:cccd_hack))
+- [ArduinoBLE](https://github.com/ysoldak/ArduinoBLE/tree/cccd_hack), custom version ([diff](https://github.com/ysoldak/ArduinoBLE/compare/master...ysoldak:cccd_hack))  
   A little hack to enable notification sending (CCCD descriptor on FFF6 characteristic)
   Please download "cccd_hack" branch of linked fork repository and replace original ArduinoBLE library with it
-- [Arduino_LSM9DS1 V2](https://github.com/FemmeVerbeek/Arduino_LSM9DS1)
+- [Arduino_LSM9DS1 V2](https://github.com/FemmeVerbeek/Arduino_LSM9DS1)  
   An improved version of stock LSM9DS1 library to work with IMU
 
 ## Test Bluetooth connectivity
