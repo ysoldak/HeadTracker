@@ -2,7 +2,7 @@
 
 // Minimal sketch to test Bluetooth communication with OpenTX radio.
 // Custom ArduinoBLE library required, download it from https://github.com/ysoldak/ArduinoBLE/tree/cccd_hack
-// Diff: https://github.com/arduino-libraries/ArduinoBLE/compare/master...ysoldak:cccd_hack
+// Diff: https://github.com/ysoldak/ArduinoBLE/compare/master...ysoldak:cccd_hack
 
 BLEService info("180A");
 BLECharacteristic sysid("2A23", BLERead, 8);
@@ -15,7 +15,7 @@ BLEByteCharacteristic fff1("FFF1", BLERead | BLEWrite);
 BLEByteCharacteristic fff2("FFF2", BLERead);
 BLECharacteristic fff3("FFF3", BLEWriteWithoutResponse, 32);
 BLECharacteristic fff5("FFF5", BLERead, 32);
-BLECharacteristic fff6("FFF6", BLEWriteWithoutResponse | BLENotify, 32);
+BLECharacteristic fff6("FFF6", BLEWriteWithoutResponse | BLENotify | BLEAutoSubscribe, 32);
 
 uint8_t sysid_data[8] = { 0xF1, 0x63, 0x1B, 0xB0, 0x6F, 0x80, 0x28, 0xFE };
 uint8_t m_data[3] = { 0x41, 0x70, 0x70 };
@@ -73,9 +73,6 @@ void loop() {
     if (central.connected()) {
       BLE.stopAdvertise();
       digitalWrite(LED_BUILTIN, HIGH);
-      if (fff6.subscribe()) {
-        Serial.println("Subscribed");
-      }
     }
 
     while (central.connected()) {
