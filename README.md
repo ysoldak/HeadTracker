@@ -1,4 +1,4 @@
-# Head Tracker
+# Arduino Nano 33 BLE Head Tracker
 Head Tracker that runs on [Arduino Nano 33 BLE](https://store.arduino.cc/arduino-nano-33-ble) and connects to [OpenTX](https://github.com/opentx/opentx) radios via Bluetooth.
 
 **Arduino Nano 33 BLE** board if perfect for head tracker project, since it has both **9DOF IMU** for orientation and **Bluetooth** for connectivity.
