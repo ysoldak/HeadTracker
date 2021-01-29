@@ -37,7 +37,7 @@ Steps:
 - Connect to the board with **Serial console** and make note of the board **address** (something like: `7b:f5:1e:35:de:94`)
 - In your radio, select Trainer mode **"Master/BT"**, wait a bit and click "[Discover]"
 - Search for your Arduino board by address you noted earlier and **Connect** to it
-- **Built-in led** on the board shall turn **on** and in serial console you shall see "Connected to central" and "Subscribed"
+- **Built-in led** on the board shall turn **on** and in serial console you shall see "Connected to central"
 - Test sketch sends constant channel values: all channels shall be on min (~1000), and only channel 3 (throttle) is on max (~2000)
 - Do not forget to configure **Trainer function** in your radio either on "Special Functions" screen of your model or on "Global Functions" of your radio setup.
 
