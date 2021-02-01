@@ -44,7 +44,7 @@ Steps:
 Notes:
 - Sometimes it would not connect at the first attempt (even when radio thinks it's connected, led stays off), keep trying.
 - Good results were achieved by switching trainer mode to "Slave/BT" briefly and then back to "Master/BT".
-- Once connection is established it stays pretty stable. You may even try power-cycle your board, in this case radio will warn you "trainer signal lost" followed by "trainer signal recovered".
+- Once connection is established it stays pretty stable. You may even power-cycle your board, in this case radio will warn you "trainer signal lost" followed by "trainer signal recovered". Switching radio off and on again after connection/pairing was successful will also result in successful re-connect, even after days off. Just be patient and wait some time for radio to boot it's bluetooth, discover head tracker and connect to it. Trying to force connection will not speedup the process, instead may put radio's bluetooth stack in some weird state and you will have to pair your radio and head tracker again.
 - Serial console connection is not needed for successfull test and connection, you really need it only once -- to learn your board address.
 - Connection status is indicated with the built-in led.
 
@@ -53,4 +53,5 @@ Notes:
   Original DIY head tracker for Arduino Nano with separate IMU board and PPM over cable
 - [Arduino_LSM9DS1 V2](https://github.com/FemmeVerbeek/Arduino_LSM9DS1)  
   Lots of information on how to work with magnetic field
+- [Bluetooth Smart/BLE Crash Course](https://inductive-kickback.com/projects/bluetooth-low-energy/bluetooth-smartble-crash-course/)
 - [Bluetooth low energy Characteristics, a beginner's tutorial](https://devzone.nordicsemi.com/nordic/short-range-guides/b/bluetooth-low-energy/posts/ble-characteristics-a-beginners-tutorial)
