@@ -79,7 +79,7 @@ void updateChannels() {
 // - Find true N from E and A
 // - Calculate angle between N-E-A vectors and X-Y-Z of the board
 //   by projecting N and E on X (or other axis, configurable, depends on board orientation)
-// - Apply Kalman(?) filter to reduce jitter
+// - Apply First order lag filter to reduce jitter, http://my.execpc.com/~steidl/robotics/first_order_lag_filter.html
 
 const float_t PanProjectionVector[3] = {1, 0, 0}; // X is along longer edge; Y is along shorter edge
 const float_t PanFilterBeta = 0.5; // smaller values dump jitter but also make reaction sluggish
@@ -99,7 +99,7 @@ void updatePan(const float_t acc[3], const float_t mag[3]) {
     panStartAngle = angle;
   }
   // return (angle - startPanAngle);
-  float_t filteredAngle = (angle - panStartAngle) * PanFilterBeta + (1 - PanFilterBeta) * panLastAngle; // Kalman filter
+  float_t filteredAngle = (angle - panStartAngle) * PanFilterBeta + (1 - PanFilterBeta) * panLastAngle; // FOL filter
   panLastAngle = filteredAngle;
   channels[ChannelPan] = toChannel(filteredAngle);
 }
