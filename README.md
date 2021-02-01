@@ -54,6 +54,8 @@ Notes:
 ## Related links
 - [DIY-Head-Tracker](https://github.com/kniuk/DIY-Head-Tracker)  
   Original DIY head tracker for Arduino Nano with separate IMU board and PPM over cable
+- [RC HeadTracker by Cliff](https://github.com/dlktdr/HeadTracker)  
+  Another, more advanced version of head tracker, also based on Arduino Nano 33 BLE [Sense] board.
 - [Arduino_LSM9DS1 V2](https://github.com/FemmeVerbeek/Arduino_LSM9DS1)  
   Lots of information on how to work with magnetic field
 - [Bluetooth Smart/BLE Crash Course](https://inductive-kickback.com/projects/bluetooth-low-energy/bluetooth-smartble-crash-course/)
