@@ -29,11 +29,24 @@ Do not forget to calibrate magnetometer.
 
 Please [install libraries](https://learn.adafruit.com/adafruit-all-about-arduino-libraries-install-use) from linked branches of above repositories.
 
-## Calibrate Magnetometer
-Run `calibration/calibration.ino` sketch, connect with serial console and follow instructions.
-When happy with results, copy calibration data and paste at respective place into `main/imu.cpp`.
+## Calibration
+### Gyroscope
+Gyroscope shall return zeros when board is stationary. No easy calibration yet.
+Calibration workaround:
+- Uncomment debug output in `main/imu.cpp`
+- Switch to `imuDebugLoop` in `main/main.ino`
+- Upload to the board, connect with serial monitor and leave the board stationary
+- Locate and note gyroscope readings, put them into calibration matrix in `main/conifg.h`, gyroscope offset row
+- Upload again and verify gyroscope reads near-zeros when board is stationary
+- Revert changes (except `config.h`) to the code before you upload to the board again!
 
-Note: Accelermeter usually does not require calibration.
+### Accelermeter
+Usually does not require calibration.
+
+### Magnetometer
+Run `calibration/calibration.ino` sketch, connect with serial console and follow instructions.
+When happy with results, copy calibration data and paste at respective place into `main/config.h`.
+
 
 ## Test Bluetooth connectivity
 Steps:
