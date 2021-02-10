@@ -1,12 +1,14 @@
 #pragma once
 
 #include <Arduino_LSM9DS1.h>
+#include <MadgwickAHRS.h>
+
+#include "config.h"
+#include "utils.h"
 
 void imuSetup();
+void imuUpdate();
 
-void imuRead(float_t acc[3], float_t mag[3]);
-void imuRead(int N, float_t acc[3], float_t mag[3]);
-
-void imuReadAcceleration(float_t out[3]);
-void imuReadMagneticField(float_t out[3]);
-void imuReadMagneticField(float_t out[3], float_t variance[3]);
+float_t imuPan();
+float_t imuTilt();
+float_t imuRoll();

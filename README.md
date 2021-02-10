@@ -22,10 +22,12 @@ Do not forget to calibrate magnetometer.
 ## Dependencies
 - [ArduinoBLE](https://github.com/ysoldak/ArduinoBLE/tree/cccd_hack), custom version ([diff](https://github.com/ysoldak/ArduinoBLE/compare/master...ysoldak:cccd_hack))  
   A little hack to enable notification sending (CCCD descriptor on FFF6 characteristic)  
-- [Arduino_LSM9DS1](https://github.com/ysoldak/Arduino_LSM9DS1/tree/head_tracker_settings), custom version ([diff](https://github.com/ysoldak/Arduino_LSM9DS1/compare/master...ysoldak:head_tracker_settings))  
-  Tweaked rates and disabled Gyro
+- [Arduino_LSM9DS1 V2](https://github.com/FemmeVerbeek/Arduino_LSM9DS1)  
+  An improved version of stock IMU library, can configure sensitivity and update rates, also supports simple calibration
+- [MadgwickAHRS](https://github.com/arduino-libraries/MadgwickAHRS)  
+  Sensor fusion algorithm for drift-less and jitter-free heading.
 
-Please download linked branches of above repositories and replace original libraries with them.
+Please [install libraries](https://learn.adafruit.com/adafruit-all-about-arduino-libraries-install-use) from linked branches of above repositories.
 
 ## Calibrate Magnetometer
 Run `calibration/calibration.ino` sketch, connect with serial console and follow instructions.
