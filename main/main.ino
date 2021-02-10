@@ -1,20 +1,22 @@
+#include "config.h"
 #include "imu.h"
 #include "para.h"
+#include "utils.h"
 
 uint16_t channels[8] = { 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500 };
 
-const uint8_t AngleMax    = 45; // for both Pan and Tilt, both directions (x2 total for each axis)
-const uint8_t ChannelPan  = 6;
-const uint8_t ChannelTilt = 7;
+unsigned long millisNow = 0;
+unsigned long millisPrevious = 0;
+unsigned long millisConnected = 0;
 
-bool debugOutput = true;
+float_t startAngle = 0.0;
 
-unsigned long time_now = 0;
+// ----------------------------------------------------------------------------
 
 void setup() {
 
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, LOW);
+  pinMode(BTLED, OUTPUT);
+  digitalWrite(BTLED, BTLEDOFF);
 
   Serial.begin(115200);
 
@@ -28,99 +30,76 @@ void loop() {
   realLoop();
 }
 
+// ----------------------------------------------------------------------------
+
 void realLoop() {
 
   while(!BLE.connected()) {
-    time_now = millis();
-    if (time_now%1000 == 0) {
+    millisNow = millis();
+    if (millisNow%1000 == 0) {
       Serial.println(BLE.address());
+      digitalWrite(BTLED, BTLEDON);
+    } else if (millisNow%500 == 0) {
+      digitalWrite(BTLED, BTLEDOFF);
     }
   };
 
-  digitalWrite(LED_BUILTIN, HIGH);
+  digitalWrite(BTLED, BTLEDON);
   BLE.stopAdvertise();
+  millisConnected = millis();
 
   while (BLE.connected()) {
-    time_now = millis();
-    updateChannels();
-    paraSend(channels);
-    if (debugOutput && time_now%100 == 0) {
-        Serial.print(channels[ChannelPan]); Serial.print(" "); Serial.println(channels[ChannelTilt]);
+    millisNow = millis();
+    if (millisNow - millisPrevious >= millisPerIter) {
+      updateChannels();
+      paraSend(channels);
+      millisPrevious = millisPrevious + millisPerIter;
     }
-    delay(5);
   }
 
   BLE.advertise();
-  digitalWrite(LED_BUILTIN, LOW);
+  digitalWrite(BTLED, BTLEDOFF);
 
 }
 
 void imuDebugLoop() {
-  updateChannels();
-  time_now = millis();
-  if (time_now%100 == 0) {
-      Serial.print(channels[ChannelPan]); Serial.print(" "); Serial.println(channels[ChannelTilt]);
+  millisNow = millis();
+  if (millisNow - millisPrevious >= millisPerIter) {
+    updateChannels();
+    millisPrevious = millisPrevious + millisPerIter;
   }
-  delay(5);
 }
 
-float_t acc[3], mag[3];
+// ----------------------------------------------------------------------------
+
 void updateChannels() {
-  imuRead(5, acc, mag);
-  updatePan(acc, mag);
-  updateTilt(acc);
-}
 
-// --- Heavy math ---
+  imuUpdate();
 
-// Algorithm for Pan in a nutshell:
-// - Find true East (E) from Acceleration vector (A), that points down
-//   and Magnet vector (M), that points roughly North (N) and down
-// - Find true N from E and A
-// - Calculate angle between N-E-A vectors and X-Y-Z of the board
-//   by projecting N and E on X (or other axis, configurable, depends on board orientation)
-// - Apply First order lag filter to reduce jitter, http://my.execpc.com/~steidl/robotics/first_order_lag_filter.html
+  float_t pan  = imuPan();
+  float_t tilt = imuTilt();
+  float_t roll = imuRoll();
 
-const float_t PanProjectionVector[3] = {1, 0, 0}; // X is along longer edge; Y is along shorter edge
-const float_t PanFilterBeta = 0.5; // smaller values dump jitter but also make reaction sluggish
-
-float_t panStartAngle = 0;
-float_t panLastAngle = 0;
-
-void updatePan(const float_t acc[3], const float_t mag[3]) {
-  float_t E[3];
-  float_t N[3];
-  vectorCross(acc, mag, E);
-  vectorNormalize(E);
-  vectorCross(E, acc, N);
-  vectorNormalize(N);
-  float_t angle = atan2(vectorDot(E, PanProjectionVector), vectorDot(N, PanProjectionVector)) * 180 / PI;
-  if (panStartAngle == 0) {
-    panStartAngle = angle;
+  if (millisNow - millisConnected < 5000) { // give it 5 sec to settle, record start angle
+    startAngle = pan;
+    tilt = 0;
+    roll = 0;
   }
-  // return (angle - startPanAngle);
-  float_t filteredAngle = (angle - panStartAngle) * PanFilterBeta + (1 - PanFilterBeta) * panLastAngle; // FOL filter
-  panLastAngle = filteredAngle;
-  channels[ChannelPan] = toChannel(filteredAngle);
-}
+  if (startAngle < 180 && pan > startAngle + 180) {
+    pan -= 360;
+  } else if (startAngle > 180 && pan < startAngle - 180) {
+    pan += 360;
+  }
+  pan -= startAngle;
 
-void updateTilt(const float_t acc[3]) {
-  channels[ChannelTilt] =  toChannel(asin(acc[0]) * 180 / PI);
-}
+  channels[ChannelPan]  = toChannel(pan);
+  channels[ChannelTilt] = toChannel(tilt);
+  channels[ChannelRoll] = toChannel(roll);
 
-void vectorCross(const float_t a[3], const float_t b[3], float_t out[3]) {
-  out[0] = (a[1] * b[2]) - (a[2] * b[1]);
-  out[1] = (a[2] * b[0]) - (a[0] * b[2]);
-  out[2] = (a[0] * b[1]) - (a[1] * b[0]);
-}
+  if (htDebug && millisNow%100 == 0) {
+    sprintf("%f\t%f\t%f\t%f\n", startAngle, pan, tilt, roll);
+  }
 
-float_t vectorDot(const float_t a[3], const float_t b[3]) {
-  return (a[0] * b[0]) + (a[1] * b[1]) + (a[2] * b[2]);
-}
-
-void vectorNormalize(float_t a[3]) {
-  float mag = sqrt(vectorDot(a, a));
-  a[0] /= mag; a[1] /= mag; a[2] /= mag;
 }
 
 uint16_t toChannel(float_t angle) {

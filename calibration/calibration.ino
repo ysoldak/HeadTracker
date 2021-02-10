@@ -38,6 +38,8 @@ void setup() {
   delay(10);
   IMU.begin();
   IMU.setOneShotMode();
+  IMU.setAccelFS(2); IMU.setGyroFS(1); IMU.setMagnetFS(0);    // ±4g, ±500°/s, ±400 µT
+  IMU.setAccelODR(2); IMU.setGyroODR(2); IMU.setMagnetODR(8); // 50 Hz, 50 Hz, 400Hz
 }
 
 void loop() {
@@ -104,7 +106,7 @@ void calibrate() {
     for (int i = 0; i<3; i++) {
       float_t a = acc[i], b = acc[(i+1)%3], c = acc[(i+2)%3];
       if (abs(a)>max(abs(b),abs(c))) {
-        if (sqrt(b*b+c*c)/a<AccelCriterion) {
+        if (sqrt(b*b+c*c)/abs(a)<AccelCriterion) {
           Serial.print(". ");
           if (a < 0) {
             magSamplesMin[i] = min(mag[i], magSamplesMin[i]);
@@ -185,11 +187,11 @@ void readAvg(uint8_t N, float_t a[3], float_t m[3]) {
   float_t x, y, z;
   for (uint8_t i = 0; i < N; i++) {
     while (!IMU.magneticFieldAvailable() || !IMU.accelerationAvailable());
-    IMU.readAcceleration(x, y, z);
+    IMU.readRawAccel(x, y, z);
     a[0] += x;
     a[1] -= y;
     a[2] -= z; // substract on Y and Z to align acc vector with mag vector
-    IMU.readMagneticField(x, y, z);
+    IMU.readRawMagnet(x, y, z);
     m[0] += imuCalibration[2][0] * (x - imuCalibration[3][0]);
     m[1] += imuCalibration[2][1] * (y - imuCalibration[3][1]);
     m[2] += imuCalibration[2][2] * (z - imuCalibration[3][2]);
