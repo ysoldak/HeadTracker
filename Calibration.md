@@ -13,4 +13,7 @@ Information overlaps, still keeping all relevant links for completenes.
 - [Compensating for Tilt, Hard-Iron, and Soft-Iron Effects](https://www.fierceelectronics.com/components/compensating-for-tilt-hard-iron-and-soft-iron-effects)
 - [FAQ: Hard & Soft Iron Correction for Magnetometer Measurements](https://ez.analog.com/mems/w/documents/4493/faq-hard-soft-iron-correction-for-magnetometer-measurements)
 - [Magnetometer Errors & Calibration](https://www.vectornav.com/resources/magnetometer-errors-calibration)
+
+Other useful links:
 - [Circle and Elipse visualisation](https://www.desmos.com/calculator/p52mkrcvrm)
+- [Axes conventions](https://en.wikipedia.org/wiki/Axes_conventions)
