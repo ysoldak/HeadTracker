@@ -53,7 +53,7 @@ void realLoop() {
     if (millisNow - millisPrevious >= millisPerIter) {
       updateChannels();
       paraSend(channels);
-      millisPrevious = millisPrevious + millisPerIter;
+      millisPrevious += millisPerIter;
     }
   }
 
@@ -66,7 +66,7 @@ void imuDebugLoop() {
   millisNow = millis();
   if (millisNow - millisPrevious >= millisPerIter) {
     updateChannels();
-    millisPrevious = millisPrevious + millisPerIter;
+    millisPrevious += millisPerIter;
   }
 }
 
