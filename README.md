@@ -27,8 +27,8 @@ Do not forget to calibrate magnetometer.
   A little hack to enable notification sending (CCCD descriptor on FFF6 characteristic)  
 - [Arduino_LSM9DS1 V2](https://github.com/FemmeVerbeek/Arduino_LSM9DS1)  
   An improved version of stock IMU library, can configure sensitivity and update rates, also supports simple calibration
-- [MadgwickAHRS](https://github.com/arduino-libraries/MadgwickAHRS)  
-  Sensor fusion algorithm for drift-less and jitter-free heading.
+- [MadgwickAHRS](https://github.com/ysoldak/MadgwickAHRS/tree/set-methods), custom version ([diff](https://github.com/ysoldak/MadgwickAHRS/compare/master...ysoldak:set-methods))  
+  Sensor fusion algorithm for drift-less and jitter-free heading, custom version adds quaternion initialisation.
 
 Please [install libraries](https://learn.adafruit.com/adafruit-all-about-arduino-libraries-install-use) from linked branches of above repositories.
 
