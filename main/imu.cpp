@@ -50,13 +50,29 @@ void imuUpdate() {
 }
 
 float_t imuPan() {
-  return FUSION.getYaw();
+  return FUSION.getYaw(); //[0, 360]
 }
 
 float_t imuTilt() {
-  return FUSION.getPitch();
+  float_t tilt = FUSION.getPitch(); // [-180, 180]
+  tilt += BoardTilt;
+  if (tilt < -180) {
+    tilt += 360;
+  }
+  if (tilt > 180) {
+    tilt -= 360;
+  }
+  return tilt;
 }
 
 float_t imuRoll() {
-  return FUSION.getRoll();
+  float_t roll = FUSION.getRoll(); // [-180, 180]
+  roll += BoardRoll;
+  if (roll < -180) {
+    roll += 360;
+  }
+  if (roll > 180) {
+    roll -= 360;
+  }
+  return roll;
 }

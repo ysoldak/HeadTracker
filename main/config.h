@@ -35,6 +35,8 @@ const uint8_t ChannelPan  = 0;
 const uint8_t ChannelTilt = 1;
 const uint8_t ChannelRoll = 2;
 
+const uint8_t BoardTilt = 0;
+const uint8_t BoardRoll = 90;
 
 // -- Knobs to turn if you really know what you are doing ---
 
