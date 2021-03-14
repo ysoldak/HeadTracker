@@ -7,8 +7,13 @@
 #include "utils.h"
 
 void imuSetup();
+void imuBegin();
 void imuUpdate();
 
-float_t imuPan();
-float_t imuTilt();
+float_t imuPitch();
 float_t imuRoll();
+float_t imuYaw();
+
+float_t imuStartPitch();
+float_t imuStartRoll();
+float_t imuStartYaw();

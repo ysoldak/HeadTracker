@@ -3,8 +3,6 @@
 #include "para.h"
 #include "utils.h"
 
-uint16_t channels[8] = { 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500 };
-
 unsigned long millisNow = 0;
 unsigned long millisPrevious = 0;
 unsigned long millisConnected = 0;
@@ -51,8 +49,7 @@ void realLoop() {
   while (BLE.connected()) {
     millisNow = millis();
     if (millisNow - millisPrevious >= millisPerIter) {
-      updateChannels();
-      paraSend(channels);
+      update();
       millisPrevious += millisPerIter;
     }
   }
@@ -65,43 +62,39 @@ void realLoop() {
 void imuDebugLoop() {
   millisNow = millis();
   if (millisNow - millisPrevious >= millisPerIter) {
-    updateChannels();
+    update();
+    if (millisNow%100 == 0) {
+      sprintf("%f\t%f\t%f\t|\t%f\t%f\t%f\n", imuPitch(), imuRoll(), imuYaw(), imuStartPitch(), imuStartRoll(), imuStartYaw());
+    }
     millisPrevious += millisPerIter;
   }
 }
 
 // ----------------------------------------------------------------------------
 
-void updateChannels() {
+void update() {
 
-  imuUpdate();
-
-  float_t pan  = imuPan();
-  float_t tilt = imuTilt();
-  float_t roll = imuRoll();
+  float_t pitch, roll, yaw;
 
   if (millisNow - millisConnected < 5000) { // give it 5 sec to settle, record start angle
-    startAngle = pan;
-    tilt = 0;
+    imuBegin();
+    pitch = 0;
     roll = 0;
+    yaw = 0;
+  } else {
+    imuUpdate();
+    pitch = imuPitch();
+    roll = imuRoll();
+    yaw = imuYaw();
   }
-  if (startAngle < 180 && pan > startAngle + 180) {
-    pan -= 360;
-  } else if (startAngle > 180 && pan < startAngle - 180) {
-    pan += 360;
-  }
-  pan -= startAngle;
 
-  channels[ChannelPan]  = toChannel(pan);
-  channels[ChannelTilt] = toChannel(tilt);
-  channels[ChannelRoll] = toChannel(roll);
-
-  if (htDebug && millisNow%100 == 0) {
-    sprintf("%f\t%f\t%f\t%f\n", startAngle, pan, tilt, roll);
-  }
+  paraSet(ChannelPitch, toChannel(pitch));
+  paraSet(ChannelRoll, toChannel(roll));
+  paraSet(ChannelYaw, toChannel(yaw));
+  paraSend();
 
 }
 
 uint16_t toChannel(float_t angle) {
-  return min(max(round(1500 + 500/AngleMax * angle), 1000), 2000);
+  return min(max(round(1500 + 500/AngleMax * angle), 988), 2012);
 }

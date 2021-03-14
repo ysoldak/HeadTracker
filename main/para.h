@@ -3,4 +3,5 @@
 #include <ArduinoBLE.h>
 
 void paraSetup();
-void paraSend(const uint16_t channels[8]);
+void paraSet(uint8_t channel, uint16_t value);
+void paraSend();

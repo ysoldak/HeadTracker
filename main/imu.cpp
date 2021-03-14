@@ -5,6 +5,8 @@ Madgwick FUSION;
 float_t ax, ay, az, gx, gy, gz, mx, my, mz;
 float_t ax1, ay1, az1, gx1, gy1, gz1, mx1, my1, mz1;
 
+float_t imuStartAngles[3] = {0, 0, 0};
+
 void imuSetup() {
 
   IMU.begin();
@@ -22,16 +24,25 @@ void imuSetup() {
   IMU.setMagnetSlope (imuCalibration[4][0], imuCalibration[4][1], imuCalibration[4][2]);
   IMU.setMagnetOffset(imuCalibration[5][0], imuCalibration[5][1], imuCalibration[5][2]);
 
-  FUSION.setFreq(imuSampleFrequency);
-  FUSION.setBeta(0.5f);                   // more snappiness than default 0.1f
-
-  IMU.readAccel(ax, ay, az); IMU.readMagnet(mx, my, mz);
-  FUSION.begin(-ax, ay, az, mx, my, mz);  // signs align frames
 }
 
 void imuLagFilter(float_t &curr, float_t &prev) {
   curr = imuLagFilterBeta*curr + (1-imuLagFilterBeta)*prev;
   prev = curr;
+}
+
+void imuBegin() {
+
+  IMU.readGyro(gx, gy, gz);
+  IMU.readAccel(ax, ay, az);
+  IMU.readMagnet(mx, my, mz);
+
+  FUSION.begin(imuSampleFrequency, 0.5f, -ax, ay, az, mx, my, mz);  // signs align frames
+
+  imuStartAngles[0] = FUSION.getPitch();
+  imuStartAngles[1] = FUSION.getRoll();
+  imuStartAngles[2] = FUSION.getYaw();
+
 }
 
 void imuUpdate() {
@@ -49,30 +60,37 @@ void imuUpdate() {
   // sprintf("%f\t%f\t%f\t\t%f\t%f\t%f\t\t%f\t%f\t%f\n", gx, gy, gz, ax, ay, az, mx, my, mz);
 }
 
-float_t imuPan() {
-  return FUSION.getYaw(); //[0, 360]
+float_t imuAngleDiff(float_t ref, float_t now) {
+  float_t diff = now - ref;
+  if (diff < -180) {
+    diff += 360;
+  }
+  if (diff > 180) {
+    diff -= 360;
+  }
+  return diff;
 }
 
-float_t imuTilt() {
-  float_t tilt = FUSION.getPitch(); // [-180, 180]
-  tilt += BoardTilt;
-  if (tilt < -180) {
-    tilt += 360;
-  }
-  if (tilt > 180) {
-    tilt -= 360;
-  }
-  return tilt;
+float_t imuPitch() {
+  return imuAngleDiff(imuStartAngles[0], FUSION.getPitch());
 }
 
 float_t imuRoll() {
-  float_t roll = FUSION.getRoll(); // [-180, 180]
-  roll += BoardRoll;
-  if (roll < -180) {
-    roll += 360;
-  }
-  if (roll > 180) {
-    roll -= 360;
-  }
-  return roll;
+  return imuAngleDiff(imuStartAngles[1], FUSION.getRoll());
+}
+
+float_t imuYaw() {
+  return imuAngleDiff(imuStartAngles[2], FUSION.getYaw());
+}
+
+float_t imuStartPitch() {
+  return imuStartAngles[0];
+}
+
+float_t imuStartRoll() {
+  return imuStartAngles[1];
+}
+
+float_t imuStartYaw() {
+  return imuStartAngles[2];
 }

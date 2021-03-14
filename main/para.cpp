@@ -27,6 +27,7 @@ uint8_t m_data[3] = { 0x41, 0x70, 0x70 };
 uint8_t ieee_data[14] = { 0xFE, 0x00, 0x65, 0x78, 0x70, 0x65, 0x72, 0x69, 0x6D, 0x65, 0x6E, 0x74, 0x61, 0x6C };
 uint8_t pnpid_data[7] = { 0x01, 0x0D, 0x00, 0x00, 0x00, 0x10, 0x01 };
 
+uint16_t channels[8] = { 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500 };
 
 void paraSetup() {
 
@@ -65,6 +66,10 @@ void paraSetup() {
 
 }
 
+void paraSet(uint8_t channel, uint16_t value) {
+  channels[channel] = value;
+}
+
 const uint8_t START_STOP = 0x7E;
 const uint8_t BYTE_STUFF = 0x7D;
 const uint8_t STUFF_MASK = 0x20;
@@ -80,7 +85,7 @@ void paraPushByte(uint8_t byte, uint8_t* buffer, uint8_t& bufferIndex, uint8_t& 
 }
 
 // Encodes channels array to para trainer packet (adapted from OpenTX source code)
-void paraSend(const uint16_t channels[8]) {
+void paraSend() {
 
   uint8_t buffer[32];
   uint8_t bufferIndex = 0;

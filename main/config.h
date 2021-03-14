@@ -31,12 +31,9 @@ const float_t imuCalibration[6][3] = {
 const uint8_t AngleMax = 45;
 
 // Trainer channels Head Tracker sends data
-const uint8_t ChannelPan  = 0;
-const uint8_t ChannelTilt = 1;
-const uint8_t ChannelRoll = 2;
-
-const uint8_t BoardTilt = 0;
-const uint8_t BoardRoll = 90;
+const uint8_t ChannelPitch = 0;
+const uint8_t ChannelRoll = 1;
+const uint8_t ChannelYaw = 2;
 
 // -- Knobs to turn if you really know what you are doing ---
 
