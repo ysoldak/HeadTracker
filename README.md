@@ -9,15 +9,17 @@ Head Tracker that runs on [Arduino Nano 33 BLE](https://store.arduino.cc/arduino
 
 **Arduino Nano 33 BLE** board if perfect for head tracker project, since it has both **9DOF IMU** for orientation and **Bluetooth** for connectivity.
 
-Before you begin, install special versions of Bluetooth and IMU libraries (see below).
+Before you begin, install special versions of Bluetooth, IMU and Madgwick libraries ([see below](#dependencies)).
 
-Upload `main` sketch, pair with radio, configure **TR1**, **TR2** and **TR3** inputs to be sent to your model for **pan**, **tilt** and **roll** servos.
+Next important step is IMU calibration ([see below](#calibration)).
 
-Good idea is to assign an override switch for pan and tilt channels, so you can always center your camera if something goes wrong with the head tracker. This is also convenient when you about to put your goggles on and do not want camera servos going mad.
+Upload `main` sketch, pair with radio, configure **TR1**, **TR2** and **TR3** as inputs for camera control servos.
 
-Default maximum angles: **45deg** each side, can be adjusted if your servos capable of more.
+Board orientation defines what trainer channels correspond to pan, tilt and roll of the camera.
 
-Do not forget to calibrate magnetometer.
+Assign an override switch for camera control channels, so you can always center your camera if needed.
+
+Default maximum angles: **45deg** each side, can be adjusted in `config.h` if your servos capable of more.
 
 ## Tested radios
 - FrSky X-Lite Pro (OpenTX version 2.3.11)
