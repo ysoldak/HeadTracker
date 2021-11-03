@@ -10,11 +10,20 @@ var fff6Handle bluetooth.Characteristic
 
 var channels = [8]uint16{1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500}
 
+// Have to send this to master radio on connect otherwise high chance opentx para code will never receive "Connected" message
+// Since it looks for "Connected\r\n" and sometimes(?) bluetooth underlying layer on master radio
+// never sends "\r\n" and starts sending trainer data directly
 var bootBuffer = []byte{0x0d, 0x0a}
+
+// 2 + 8(max 16) + 2
 var paraBuffer []byte = make([]byte, 20)
 
 // var paraBuffer = []byte{0x7e, 0x80, 0x85, 0x60, 0xa7, 0x55, 0x7d, 0x5d, 0xe5, 0xdc, 0x3d, 0xc3, 0xdc, 0x3d, 0xc3, 0x0f, 0x7e}
 
+// Theory https://devzone.nordicsemi.com/f/nordic-q-a/15571/automatically-start-notification-upon-connection-event-manually-write-cccd---short-tutorial-on-notifications
+// In practice these values were manually extracted after connecting to head tracker with BlueSee app
+// That 0x01 out there is CCCD bit telling the bluetooth stack notification is enabled / client subscribed
+// Last two bytes is CRC, see theory link
 var fff6Attributes = []byte{0x0d, 0x00, 0x02, 0x00, 0x02, 0x00, 0x22, 0x00, 0x02, 0x00, 0x01, 0x00, 0xcd, 0xa0}
 
 func paraSetup() {
