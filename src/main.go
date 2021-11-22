@@ -23,17 +23,7 @@ func main() {
 	paraSetup()
 
 	ble.SetConnectHandler(func(device bluetooth.Addresser, connected bool) {
-		if device != nil {
-			println(device.String())
-		}
 		conStatus <- connected
-		if connected {
-			led.High()
-			adv.Stop()
-		} else {
-			led.Low()
-			adv.Start()
-		}
 	})
 
 	c := false
