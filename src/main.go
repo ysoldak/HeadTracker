@@ -7,7 +7,14 @@ import (
 	"tinygo.org/x/bluetooth"
 )
 
+const (
+	angleMax = 45
+	PERIOD   = 50 * time.Millisecond
+)
+
 var conStatus = make(chan bool, 1)
+
+var conTime time.Time
 
 func main() {
 	led := machine.LED
@@ -20,6 +27,7 @@ func main() {
 
 	println("starting")
 
+	imuSetup()
 	paraSetup()
 
 	ble.SetConnectHandler(func(device bluetooth.Addresser, connected bool) {
@@ -35,11 +43,13 @@ func main() {
 			if c {
 				blue.Low()
 				sendAfter = time.Now().Add(1 * time.Second)
+				conTime = time.Now()
 				paraBoot()
 				println("Connected")
 			} else {
 				blue.High()
 				sendAfter = time.Time{}
+				conTime = time.Time{}
 				println("Disconnected")
 			}
 		default:
@@ -52,15 +62,53 @@ func main() {
 				time.Sleep(1000 * time.Millisecond)
 				continue
 			}
-			newValue := ((channels[0]-1000)+1)%1000 + 1000
-			for i := 0; i < 3; i++ {
-				paraSet(byte(i), newValue)
+			now := time.Now()
+			update()
+			sleep := PERIOD - time.Since(now)
+			if sleep > 0 {
+				time.Sleep(sleep)
 			}
-			paraSend()
-			time.Sleep(40 * time.Millisecond)
 		}
 	}
 
+}
+
+func updateFake() {
+	newValue := ((channels[0]-1000)+1)%1000 + 1000
+	for i := 0; i < 3; i++ {
+		paraSet(byte(i), newValue)
+	}
+	paraSend()
+}
+
+func update() {
+	var pitch, roll, yaw float64
+
+	if time.Since(conTime) < 5*time.Second { // give it 5 sec to settle, record start angle
+		imuWarmup()
+		pitch = 0
+		roll = 0
+		yaw = 0
+	} else {
+		pitch, roll, yaw = imuAngles()
+	}
+
+	paraSet(0, toChannel(pitch))
+	paraSet(1, toChannel(roll))
+	paraSet(2, toChannel(yaw))
+	paraSend()
+
+}
+
+func toChannel(angle float64) uint16 {
+	result := uint16(1500 + 500/angleMax*angle)
+	if result < 988 {
+		return 988
+	}
+	if result > 2012 {
+		return 2012
+	}
+	return result
 }
 
 func must(action string, err error) {
