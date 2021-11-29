@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"machine"
 	"math"
 	"time"
@@ -10,10 +11,14 @@ import (
 	"tinygo.org/x/drivers/lsm9ds1"
 )
 
+const radToDeg = 57.29578
+
 var imu *lsm9ds1.Device
 var gyrCal *GyrCal
 var magCal *magcal.MagCal
-var fusion ahrs.Mahony
+
+// var fusion ahrs.Mahony
+var fusion ahrs.Madgwick
 
 func imuSetup() {
 	// Board setup
@@ -38,49 +43,205 @@ func imuSetup() {
 	gyrCal = &GyrCal{}
 
 	// Magnetometer runtime calibration
-	magCal = magcal.NewDefault()
-	magCal.Start()
+	magCalConfig := magcal.DefaultConfiguration()
+	magCalConfig.Throttle = PERIOD
+	magCalState := magcal.NewState([]float32{
+		-0.27, -0.16, +0.20,
+		+1.13, +0.06, -0.03,
+		+0.05, +1.21, -0.03,
+		-0.01, -0.02, +1.21,
+	})
+	// magCalState := magcal.DefaultState()
+	magCal = magcal.New(magCalState, magCalConfig)
+	// magCal.Start()
 
 	// Fusion
-	fusion = ahrs.NewDefaultMahony(float64(time.Second / PERIOD))
+	// fusion = ahrs.NewDefaultMahony(float64(time.Second / PERIOD))
+	// fusion = ahrs.NewMadgwick(0.2, float64(time.Second/PERIOD))
+	fusion = ahrs.NewMadgwick(0.5, 20)
+}
+
+func imuWork(output chan ([3]float32)) {
+	warmup := time.Now().Add(5 * time.Second)
+	// warmup := time.Now().Add(5 * time.Hour)
+	i := 0
+	for {
+		i++
+		now := time.Now()
+		if now.Before(warmup) {
+			imuWarmup()
+			// if i%100 == 0 {
+			// 	StateDump(magcal.State)
+			// }
+			roll, pitch, yaw := qToAngles(fusion.Quaternions)
+			fmt.Printf("%+3.3f %+3.3f %+3.3f\r\n", roll, pitch, yaw)
+			// TODO remember start angles
+		} else {
+			// panic("AAA!!!")
+			r, p, y := imuAngles()
+			// roll, pitch, yaw := qToAngles(fusion.Quaternions)
+			// fmt.Printf("%+000.3f %+000.3f %+000.3f\r\n", r, p, y)
+			arr := [3]float32{r, p, y}
+			select {
+			case output <- arr:
+			default:
+				println("imu: output channel full, dropping measurement")
+			}
+		}
+		sleep := PERIOD - time.Since(now)
+		if sleep > 0 {
+			time.Sleep(sleep)
+		}
+	}
 }
 
 func imuWarmup() {
-	ax, ay, az, _ := imu.ReadAcceleration()
 	gx, gy, gz, _ := imu.ReadRotation()
+	ax, ay, az, _ := imu.ReadAcceleration()
 	mx, my, mz, _ := imu.ReadMagneticField()
+
+	gx, gy, gz = gyrCal.apply(gx, gy, gz)
 
 	mxf, myf, mzf := float32(mx)/50000, float32(my)/50000, float32(mz)/50000
 	mxf, myf, mzf = magCal.Apply(mxf, myf, mzf)
 
-	// TODO fusion init
-	fusion.Update9D(
-		float64(gx), float64(gy), float64(gz),
-		float64(ax), float64(ay), float64(az),
+	fusion.Quaternions = orientationToQ(
+		float64(-ax)/1000000, float64(ay)/1000000, float64(az)/1000000,
 		float64(mxf), float64(myf), float64(mzf),
 	)
 }
 
-func imuAngles() (pitch, roll, yaw float64) {
-	ax, ay, az, _ := imu.ReadAcceleration()
+func imuAngles() (roll, pitch, yaw float32) {
 	gx, gy, gz, _ := imu.ReadRotation()
+	ax, ay, az, _ := imu.ReadAcceleration()
 	mx, my, mz, _ := imu.ReadMagneticField()
 
 	mxf, myf, mzf := float32(mx)/50000, float32(my)/50000, float32(mz)/50000
 	mxf, myf, mzf = magCal.Apply(mxf, myf, mzf)
 
+	gx, gy, gz = gyrCal.apply(gx, gy, gz)
+
 	q := fusion.Update9D(
-		float64(gx), float64(gy), float64(gz),
-		float64(ax), float64(ay), float64(az),
+		float64(-gx)/1000000, float64(gy)/1000000, float64(gz)/1000000,
+		// float64(-ax)/1000000*9.8, float64(ay)/1000000*9.8, float64(az)/1000000*9.8,
+		float64(-ax)/1000000, float64(ay)/1000000, float64(az)/1000000,
 		float64(mxf), float64(myf), float64(mzf),
 	)
+	// q := fusion.Update6D(
+	// 	float64(-gx)/1000000, float64(gy)/1000000, float64(gz)/1000000,
+	// 	float64(-ax)/1000000*9.8, float64(ay)/1000000*9.8, float64(az)/1000000*9.8,
+	// )
 	roll, pitch, yaw = qToAngles(q)
 	return
 }
 
-func qToAngles(q [4]float64) (roll, pitch, yaw float64) {
-	roll = math.Atan2(q[0]*q[1]+q[2]*q[3], 0.5-q[1]*q[1]-q[2]*q[2])
-	pitch = math.Asin(-2.0 * (q[1]*q[3] - q[0]*q[2]))
-	yaw = math.Atan2(q[1]*q[2]+q[0]*q[3], 0.5-q[2]*q[2]-q[3]*q[3])
+// angles are in degrees
+func qToAngles(q [4]float64) (roll, pitch, yaw float32) {
+	roll = float32(math.Atan2(q[0]*q[1]+q[2]*q[3], 0.5-q[1]*q[1]-q[2]*q[2]) * radToDeg)
+	pitch = float32(math.Asin(-2.0*(q[1]*q[3]-q[0]*q[2])) * radToDeg)
+	yaw = float32(math.Atan2(q[1]*q[2]+q[0]*q[3], 0.5-q[2]*q[2]-q[3]*q[3]) * radToDeg)
+	return
+}
+
+// -- Helper --
+
+func StateDump(data []float32) {
+	println("===")
+	for i := range data {
+		fmt.Printf("%5.2f, ", data[i])
+		if i > 0 && (i+1)%3 == 0 {
+			println()
+		}
+	}
+	println("===")
+}
+
+// -- Quaternion initialisation --
+
+// Initialize quaternion from current orientation (sensors)
+// Finds North, then aligns North with (1, 0, 0) and Gravity with (0, 0, 1)
+func orientationToQ(ax, ay, az, mx, my, mz float64) (q [4]float64) {
+
+	// Reset quaternion, we are searching from scratch
+	q[0], q[1], q[2], q[3] = 1, 0, 0, 0
+
+	// Find North
+	wx, wy, wz := cross(ax, ay, az, mx, my, mz)
+	nx, ny, nz := cross(wx, wy, wz, ax, ay, az)
+
+	// fmt.Printf("%+0.3f %+0.3f %+0.3f\r\n", ax, ay, az)
+	// fmt.Printf("%+0.3f %+0.3f %+0.3f\r\n", mx, my, mz)
+	// fmt.Printf("%+0.3f %+0.3f %+0.3f\r\n", nx, ny, nz)
+
+	// Find rotation of (nx, ny, nz) to align with (1, 0, 0)
+	q = align(nx, ny, nz, 1, 0, 0, q)
+
+	// Rotate (ax, ay, az) same amount
+	ax, ay, az = rotate(ax, ay, az, q)
+
+	// Find next rotation of (ax, ay, az) to align with (0, 0, 1)
+	q = align(ax, ay, az, 0, 0, 1, q)
+	return
+}
+
+// align two vectors and return respective rotation quaternion
+func align(ax, ay, az, bx, by, bz float64, u [4]float64) (q [4]float64) {
+	// float va, vx, vy, vz; // rotation angle and vector
+	vx, vy, vz := cross(ax, ay, az, bx, by, bz)
+	ax, ay, az = norm(ax, ay, az)
+	bx, by, bz = norm(bx, by, bz)
+	vx, vy, vz = norm(vx, vy, vz)
+	va := math.Acos(dot(ax, ay, az, bx, by, bz))
+	a2 := math.Cos(va / 2)
+	b2 := vx * math.Sin(va/2)
+	c2 := vy * math.Sin(va/2)
+	d2 := vz * math.Sin(va/2)
+	v := [4]float64{a2, b2, c2, d2}
+	q = combine(u, v)
+	return
+}
+
+// combine two rotations and return result rotation
+// see https://en.wikipedia.org/wiki/Euler–Rodrigues_formula#Composition_of_rotations
+func combine(u, v [4]float64) (q [4]float64) {
+	a1, b1, c1, d1 := u[0], u[1], u[2], u[3]
+	a2, b2, c2, d2 := v[0], v[1], v[2], v[3]
+	q[0] = a1*a2 - b1*b2 - c1*c2 - d1*d2
+	q[1] = a1*b2 + b1*a2 - c1*d2 + d1*c2
+	q[2] = a1*c2 + c1*a2 - d1*b2 + b1*d2
+	q[3] = a1*d2 + d1*a2 - b1*c2 + c1*b2
+	return
+}
+
+// rotate given vector as defined by quaternion
+// see https://en.wikipedia.org/wiki/Euler–Rodrigues_formula#Vector_formulation
+func rotate(ax, ay, az float64, q [4]float64) (bx, by, bz float64) {
+	r1x, r1y, r1z := cross(q[1], q[2], q[3], ax, ay, az)
+	r2x, r2y, r2z := cross(q[1], q[2], q[3], r1x, r1y, r1z)
+	bx = ax + 2*q[0]*r1x + 2*r2x
+	by = ay + 2*q[0]*r1y + 2*r2y
+	bz = az + 2*q[0]*r1z + 2*r2z
+	return
+}
+
+// cross product of two vectors
+func cross(ax, ay, az, bx, by, bz float64) (cx, cy, cz float64) {
+	cx = ay*bz - az*by
+	cy = az*bx - ax*bz
+	cz = ax*by - ay*bx
+	return
+}
+
+// dot product of two vectors
+func dot(ax, ay, az, bx, by, bz float64) float64 {
+	return ax*bx + ay*by + az*bz
+}
+
+// norm of a vector
+func norm(ax, ay, az float64) (bx, by, bz float64) {
+	len := math.Sqrt(dot(ax, ay, az, ax, ay, az))
+	bx = ax / len
+	by = ay / len
+	bz = az / len
 	return
 }

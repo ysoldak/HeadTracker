@@ -1,8 +1,20 @@
+//go:build nano_33_ble_s140v7
+// +build nano_33_ble_s140v7
+
 package main
 
 import (
+	"machine"
+	"time"
+
 	"tinygo.org/x/bluetooth"
 )
+
+var blue = machine.LED_BLUE
+
+var conStatusChan = make(chan bool, 1)
+
+// var conTime time.Time
 
 var ble = bluetooth.DefaultAdapter
 var adv *bluetooth.Advertisement
@@ -27,6 +39,10 @@ var paraBuffer []byte = make([]byte, 20)
 var fff6Attributes = []byte{0x0d, 0x00, 0x02, 0x00, 0x02, 0x00, 0x22, 0x00, 0x02, 0x00, 0x01, 0x00, 0xcd, 0xa0}
 
 func paraSetup() {
+
+	blue.Configure(machine.PinConfig{Mode: machine.PinOutput})
+	blue.High()
+
 	must("enable BLE stack", ble.Enable())
 
 	sysid := bluetooth.CharacteristicConfig{
@@ -113,6 +129,55 @@ func paraSetup() {
 	}))
 	must("start adv", adv.Start())
 
+	ble.SetConnectHandler(func(device bluetooth.Addresser, connected bool) {
+		conStatusChan <- connected
+	})
+
+}
+
+func paraWork(input chan [3]uint16) {
+	connected := false
+	address := ""
+	var sendAfter time.Time
+	for {
+		select {
+		case connected = <-conStatusChan:
+			if connected {
+				blue.Low()
+				sendAfter = time.Now().Add(1 * time.Second)
+				// conTime = time.Now()
+				paraBoot()
+				println("Connected")
+			} else {
+				blue.High()
+				sendAfter = time.Time{}
+				// conTime = time.Time{}
+				println("Disconnected")
+			}
+			continue
+		case values := <-input:
+			channels[0] = values[0]
+			channels[1] = values[1]
+			channels[2] = values[2]
+			continue
+		default:
+			if !connected || sendAfter.IsZero() || time.Now().Before(sendAfter) {
+				if len(address) == 0 {
+					addr, _ := ble.Address()
+					address = addr.MAC.String()
+				}
+				println("Advertising as Hello /", address)
+				time.Sleep(1000 * time.Millisecond)
+				continue
+			}
+		}
+		now := time.Now()
+		paraSend()
+		sleep := PERIOD - time.Since(now)
+		if sleep > 0 {
+			time.Sleep(sleep)
+		}
+	}
 }
 
 // paraBoot sends '\r\n', it helps remote switch to receiveTrainer state
