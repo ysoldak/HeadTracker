@@ -1,5 +1,5 @@
-//go:build nano_33_ble_s140v7
-// +build nano_33_ble_s140v7
+//go:build s140v7
+// +build s140v7
 
 package main
 

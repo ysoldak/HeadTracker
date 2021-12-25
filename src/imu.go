@@ -141,7 +141,7 @@ func imuAngles() (roll, pitch, yaw float32) {
 	)
 	// q := fusion.Update6D(
 	// 	float64(-gx)/1000000, float64(gy)/1000000, float64(gz)/1000000,
-	// 	float64(-ax)/1000000*9.8, float64(ay)/1000000*9.8, float64(az)/1000000*9.8,
+	// 	float64(-ax)/1000000, float64(ay)/1000000, float64(az)/1000000,
 	// )
 	roll, pitch, yaw = qToAngles(q)
 	return
