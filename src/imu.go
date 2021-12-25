@@ -21,6 +21,8 @@ var magCal *magcal.MagCal
 // var fusion ahrs.Mahony
 var fusion ahrs.Madgwick
 
+var startAngles = [3]float32{0, 0, 0}
+
 func imuSetup() {
 	// Board setup
 	machine.I2C1.Configure(machine.I2CConfig{
@@ -70,19 +72,26 @@ func imuWork(output chan ([3]float32)) {
 		i++
 		now := time.Now()
 		if now.Before(warmup) {
-			imuWarmup()
+			r, p, y := imuWarmup()
+			startAngles[0] = r
+			startAngles[1] = p
+			startAngles[2] = y
 			// if i%100 == 0 {
 			// 	StateDump(magcal.State)
 			// }
-			roll, pitch, yaw := qToAngles(fusion.Quaternions)
-			fmt.Printf("%+3.3f %+3.3f %+3.3f\r\n", roll, pitch, yaw)
+			// qToAngles(fusion.Quaternions)
+			// fmt.Printf("%+3.3f %+3.3f %+3.3f\r\n", roll, pitch, yaw)
 			// TODO remember start angles
 		} else {
 			// panic("AAA!!!")
 			r, p, y := imuAngles()
 			// roll, pitch, yaw := qToAngles(fusion.Quaternions)
 			// fmt.Printf("%+000.3f %+000.3f %+000.3f\r\n", r, p, y)
-			arr := [3]float32{r, p, y}
+			arr := [3]float32{
+				imuAngleDiff(startAngles[0], r),
+				imuAngleDiff(startAngles[1], p),
+				imuAngleDiff(startAngles[2], y),
+			}
 			select {
 			case output <- arr:
 			default:
@@ -96,7 +105,7 @@ func imuWork(output chan ([3]float32)) {
 	}
 }
 
-func imuWarmup() {
+func imuWarmup() (roll, pitch, yaw float32) {
 	gx, gy, gz, _ := imu.ReadRotation()
 	ax, ay, az, _ := imu.ReadAcceleration()
 	mx, my, mz, _ := imu.ReadMagneticField()
@@ -110,6 +119,9 @@ func imuWarmup() {
 		float64(-ax)/1000000, float64(ay)/1000000, float64(az)/1000000,
 		float64(mxf), float64(myf), float64(mzf),
 	)
+
+	roll, pitch, yaw = qToAngles(fusion.Quaternions)
+	return
 }
 
 func imuAngles() (roll, pitch, yaw float32) {
@@ -141,6 +153,17 @@ func qToAngles(q [4]float64) (roll, pitch, yaw float32) {
 	pitch = float32(math.Asin(-2.0*(q[1]*q[3]-q[0]*q[2])) * radToDeg)
 	yaw = float32(math.Atan2(q[1]*q[2]+q[0]*q[3], 0.5-q[2]*q[2]-q[3]*q[3]) * radToDeg)
 	return
+}
+
+func imuAngleDiff(ref, now float32) float32 {
+	diff := now - ref
+	if diff < -180 {
+		diff += 360
+	}
+	if diff > 180 {
+		diff -= 360
+	}
+	return diff
 }
 
 // -- Helper --
