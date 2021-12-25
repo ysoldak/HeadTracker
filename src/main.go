@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"machine"
 	"time"
 )
@@ -24,8 +23,8 @@ func main() {
 	imuSetup()
 	go imuWork(imuChan)
 
-	// paraSetup()
-	// go paraWork(paraChan)
+	paraSetup()
+	go paraWork(paraChan)
 
 	// now := time.Now().UnixMilli()
 	for {
@@ -35,8 +34,8 @@ func main() {
 			toChannel(angles[1]),
 			toChannel(angles[2]),
 		}
-		//paraChan <- values
-		fmt.Printf("%10d | %8.3f %8.3f %8.3f | %4d %4d %4d\r\n", time.Now().UnixMilli(), angles[0], angles[1], angles[2], values[0], values[1], values[2])
+		paraChan <- values
+		// fmt.Printf("%10d | %8.3f %8.3f %8.3f | %4d %4d %4d\r\n", time.Now().UnixMilli(), angles[0], angles[1], angles[2], values[0], values[1], values[2])
 	}
 
 }
