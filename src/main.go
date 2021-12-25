@@ -13,10 +13,24 @@ const (
 var imuChan = make(chan [3]float32, 1)
 var paraChan = make(chan [3]uint16, 1)
 
+var debugPin = machine.D2
+var debugValue = false
+
+func debugToggle() {
+	if debugValue {
+		debugPin.High()
+	} else {
+		debugPin.Low()
+	}
+	debugValue = !debugValue
+}
+
 func main() {
 	led := machine.LED
 	led.Configure(machine.PinConfig{Mode: machine.PinOutput})
 	led.Low()
+
+	debugPin.Configure(machine.PinConfig{Mode: machine.PinOutput})
 
 	println("starting")
 
@@ -34,6 +48,7 @@ func main() {
 			toChannel(angles[1]),
 			toChannel(angles[2]),
 		}
+		debugToggle()
 		paraChan <- values
 		// fmt.Printf("%10d | %8.3f %8.3f %8.3f | %4d %4d %4d\r\n", time.Now().UnixMilli(), angles[0], angles[1], angles[2], values[0], values[1], values[2])
 	}
