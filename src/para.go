@@ -12,9 +12,7 @@ import (
 
 var blue = machine.LED_BLUE
 
-var conStatusChan = make(chan bool, 1)
-
-// var conTime time.Time
+var sendAfter time.Time
 
 var ble = bluetooth.DefaultAdapter
 var adv *bluetooth.Advertisement
@@ -43,7 +41,7 @@ func paraSetup() {
 	blue.Configure(machine.PinConfig{Mode: machine.PinOutput})
 	blue.High()
 
-	must("enable BLE stack", ble.Enable())
+	ble.Enable()
 
 	sysid := bluetooth.CharacteristicConfig{
 		Handle: nil,
@@ -73,12 +71,12 @@ func paraSetup() {
 		Flags:  bluetooth.CharacteristicReadPermission,
 	}
 
-	must("add service", ble.AddService(&bluetooth.Service{
+	ble.AddService(&bluetooth.Service{
 		UUID: bluetooth.ServiceUUIDDeviceInformation,
 		Characteristics: []bluetooth.CharacteristicConfig{
 			sysid, manufacturer, ieee, pnpid,
 		},
-	}))
+	})
 
 	fff1 := bluetooth.CharacteristicConfig{
 		Handle: nil,
@@ -115,72 +113,34 @@ func paraSetup() {
 		Flags:  bluetooth.CharacteristicWriteWithoutResponsePermission | bluetooth.CharacteristicNotifyPermission,
 	}
 
-	must("add service", ble.AddService(&bluetooth.Service{
+	ble.AddService(&bluetooth.Service{
 		UUID: bluetooth.New16BitUUID(0xFFF0),
 		Characteristics: []bluetooth.CharacteristicConfig{
 			fff1, fff2, fff3, fff5, fff6,
 		},
-	}))
+	})
 
 	adv = ble.DefaultAdvertisement()
-	must("config adv", adv.Configure(bluetooth.AdvertisementOptions{
+	adv.Configure(bluetooth.AdvertisementOptions{
 		LocalName:    "Hello",
 		ServiceUUIDs: []bluetooth.UUID{bluetooth.New16BitUUID(0xFFF0)},
-	}))
-	must("start adv", adv.Start())
+	})
+	adv.Start()
 
 	ble.SetConnectHandler(func(device bluetooth.Addresser, connected bool) {
-		conStatusChan <- connected
+		if connected {
+			blue.Low()
+			sendAfter = time.Now().Add(1 * time.Second)
+			paraBoot()
+		} else {
+			blue.High()
+			sendAfter = time.Time{}
+		}
 	})
 
 }
 
-func paraWork(input chan [3]uint16) {
-	connected := false
-	address := ""
-	var sendAfter time.Time
-	for {
-		select {
-		case connected = <-conStatusChan:
-			if connected {
-				blue.Low()
-				sendAfter = time.Now().Add(1 * time.Second)
-				// conTime = time.Now()
-				paraBoot()
-				println("Connected")
-			} else {
-				blue.High()
-				sendAfter = time.Time{}
-				// conTime = time.Time{}
-				println("Disconnected")
-			}
-			continue
-		case values := <-input:
-			channels[0] = values[0]
-			channels[1] = values[1]
-			channels[2] = values[2]
-			continue
-		default:
-			if !connected || sendAfter.IsZero() || time.Now().Before(sendAfter) {
-				if len(address) == 0 {
-					addr, _ := ble.Address()
-					address = addr.MAC.String()
-				}
-				println("Advertising as Hello /", address)
-				time.Sleep(1000 * time.Millisecond)
-				continue
-			}
-		}
-		now := time.Now()
-		paraSend()
-		sleep := PERIOD - time.Since(now)
-		if sleep > 0 {
-			time.Sleep(sleep)
-		}
-	}
-}
-
-// paraBoot sends '\r\n', it helps remote switch to receiveTrainer state
+// paraBoot sends '\r\n', it helps remote master switch to receiveTrainer state
 func paraBoot() {
 	fff6Handle.SetAttributes(fff6Attributes)
 	fff6Handle.Write(bootBuffer)
@@ -208,6 +168,10 @@ func paraPushByte(b byte, bufferIndex *byte, crc *byte) {
 
 // Encodes channels array to para trainer packet (adapted from OpenTX source code)
 func paraSend() {
+
+	if sendAfter.IsZero() || time.Now().Before(sendAfter) {
+		return
+	}
 
 	var bufferIndex byte = 0
 	var crc byte = 0x00

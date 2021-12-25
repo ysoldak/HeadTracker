@@ -16,7 +16,7 @@ jlink-softdevice:
 	nrfjprog -f nrf52 --program $(SOFTDEVICE_HEX)
 
 build:
-	tinygo build -target=$(TARGET) -size=$(SIZE) -opt=z -print-allocs=main -o ./build/build.hex $(SRC)
+	tinygo build -target=$(TARGET) -size=full -opt=z -print-allocs=main -o ./build/build.hex $(SRC)
 
 flash:
 	tinygo flash -target=$(TARGET) -size=$(SIZE) -opt=z -print-allocs=main -programmer=cmsis-dap $(SRC)

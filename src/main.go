@@ -3,27 +3,14 @@ package main
 import (
 	"machine"
 	"time"
+
+	"github.com/tracktum/go-ahrs"
 )
 
 const (
 	angleMax = 45
 	PERIOD   = 50 * time.Millisecond
 )
-
-var imuChan = make(chan [3]float32, 1)
-var paraChan = make(chan [3]uint16, 1)
-
-var debugPin = machine.D2
-var debugValue = false
-
-func debugToggle() {
-	if debugValue {
-		debugPin.High()
-	} else {
-		debugPin.Low()
-	}
-	debugValue = !debugValue
-}
 
 func main() {
 	led := machine.LED
@@ -32,72 +19,54 @@ func main() {
 
 	debugPin.Configure(machine.PinConfig{Mode: machine.PinOutput})
 
-	println("starting")
+	// IMU
+	imu := NewIMU()
+	imu.Configure()
 
-	imuSetup()
-	go imuWork(imuChan)
+	// Orientation
+	fusion := ahrs.NewMadgwick(0.05, float64(time.Second/PERIOD))
 
+	// Bluetooth
 	paraSetup()
-	go paraWork(paraChan)
 
-	// now := time.Now().UnixMilli()
+	// Main loop
+	initial := [3]float32{0, 0, 0}
+	current := [3]float32{0, 0, 0}
+	warmup := time.Now().Add(5 * time.Second)
+
 	for {
-		angles := <-imuChan
-		values := [3]uint16{
-			toChannel(angles[0]),
-			toChannel(angles[1]),
-			toChannel(angles[2]),
-		}
+
+		now := time.Now()
+
+		gx, gy, gz, ax, ay, az, mx, my, mz := imu.Read()
 		debugToggle()
-		paraChan <- values
-		// fmt.Printf("%10d | %8.3f %8.3f %8.3f | %4d %4d %4d\r\n", time.Now().UnixMilli(), angles[0], angles[1], angles[2], values[0], values[1], values[2])
-	}
 
-}
-
-// func updateFake() {
-// 	newValue := ((channels[0]-1000)+1)%1000 + 1000
-// 	for i := 0; i < 3; i++ {
-// 		paraSet(byte(i), newValue)
-// 	}
-// 	paraSend()
-// }
-
-// func update() {
-// 	var pitch, roll, yaw float64
-
-// 	// if time.Since(conTime) < 5*time.Second { // give it 5 sec to settle, record start angle
-// 	// 	imuWarmup()
-// 	// 	pitch = 0
-// 	// 	roll = 0
-// 	// 	yaw = 0
-// 	// } else {
-// 	// 	pitch, roll, yaw = imuAngles()
-// 	// }
-
-// 	paraSet(0, toChannel(pitch))
-// 	paraSet(1, toChannel(roll))
-// 	paraSet(2, toChannel(yaw))
-// 	paraSend()
-
-// }
-
-func toChannel(angle float32) uint16 {
-	result := uint16(1500 + 500/angleMax*angle)
-	if result < 988 {
-		return 988
-	}
-	if result > 2012 {
-		return 2012
-	}
-	return result
-}
-
-func must(action string, err error) {
-	if err != nil {
-		for {
-			println("failed to " + action + ": " + err.Error())
-			time.Sleep(time.Second)
+		var q [4]float64
+		if now.Before(warmup) {
+			q = orientationToQuaternion(ax, ay, az, mx, my, mz)
+			initial[0], initial[1], initial[2] = quaternionToAngles(q)
+			fusion.Quaternions = q
+		} else {
+			q = fusion.Update9D(
+				gx*degToRad, gy*degToRad, gz*degToRad,
+				ax, ay, az,
+				mx, my, mz,
+			)
 		}
+
+		current[0], current[1], current[2] = quaternionToAngles(q)
+		for i := byte(0); i < 3; i++ {
+			angle := angleMinusAngle(current[i], initial[i])
+			value := angleToChannel(angle, 45)
+			paraSet(i, value)
+		}
+		paraSend()
+
+		sleep := PERIOD - time.Since(now)
+		if sleep > 0 {
+			time.Sleep(sleep)
+		}
+
 	}
+
 }
