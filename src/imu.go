@@ -11,7 +11,8 @@ import (
 	"tinygo.org/x/drivers/lsm9ds1"
 )
 
-const radToDeg = 57.29578
+const radToDeg = 180 / math.Pi // 57.29578
+const degToRad = 1 / radToDeg  // 0.0174533
 
 var imu *lsm9ds1.Device
 var gyrCal *GyrCal
@@ -122,8 +123,7 @@ func imuAngles() (roll, pitch, yaw float32) {
 	gx, gy, gz = gyrCal.apply(gx, gy, gz)
 
 	q := fusion.Update9D(
-		float64(-gx)/1000000, float64(gy)/1000000, float64(gz)/1000000,
-		// float64(-ax)/1000000*9.8, float64(ay)/1000000*9.8, float64(az)/1000000*9.8,
+		float64(-gx)/1000000*degToRad, float64(gy)/1000000*degToRad, float64(gz)/1000000*degToRad,
 		float64(-ax)/1000000, float64(ay)/1000000, float64(az)/1000000,
 		float64(mxf), float64(myf), float64(mzf),
 	)
