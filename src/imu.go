@@ -59,7 +59,9 @@ func (imu *IMU) Configure() {
 
 func (imu *IMU) Read() (gx, gy, gz, ax, ay, az, mx, my, mz float64) {
 	gxi, gyi, gzi, _ := imu.device.ReadRotation()
+	time.Sleep(time.Millisecond)
 	axi, ayi, azi, _ := imu.device.ReadAcceleration()
+	time.Sleep(time.Millisecond)
 	mxi, myi, mzi, _ := imu.device.ReadMagneticField()
 
 	gxi, gyi, gzi = imu.gyrCal.apply(gxi, gyi, gzi)
