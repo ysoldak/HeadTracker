@@ -191,5 +191,9 @@ func paraSend() {
 
 	// fmt.Printf("%x\r\n", paraBuffer[:bufferIndex+2])
 
-	fff6Handle.Write(paraBuffer[:bufferIndex+2])
+	n, err := fff6Handle.Write(paraBuffer[:bufferIndex+2])
+	if err != nil {
+		println(err.Error())
+		println(n)
+	}
 }
