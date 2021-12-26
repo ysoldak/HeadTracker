@@ -53,7 +53,7 @@ func (imu *IMU) Configure() {
 	})
 	// magCalState := magcal.DefaultState()
 	imu.magCal = magcal.New(magCalState, magCalConfig)
-	// magCal.Start()
+	imu.magCal.Start()
 
 }
 
