@@ -9,7 +9,7 @@ import (
 
 const (
 	angleMax = 45
-	PERIOD   = 50 * time.Millisecond
+	PERIOD   = 20 * time.Millisecond
 )
 
 func main() {
@@ -38,19 +38,18 @@ func main() {
 
 		now := time.Now()
 
-		gx, gy, gz, ax, ay, az, mx, my, mz := imu.Read()
+		gx, gy, gz, ax, ay, az := imu.Read()
 		debugToggle()
 
 		var q [4]float64
 		if now.Before(warmup) {
-			q = orientationToQuaternion(ax, ay, az, mx, my, mz)
+			q = orientationToQuaternion(ax, ay, az, 1, 0, 0) // assume N since we don't have mag
 			initial[0], initial[1], initial[2] = quaternionToAngles(q)
 			fusion.Quaternions = q
 		} else {
-			q = fusion.Update9D(
+			q = fusion.Update6D(
 				gx*degToRad, gy*degToRad, gz*degToRad,
 				ax, ay, az,
-				mx, my, mz,
 			)
 		}
 

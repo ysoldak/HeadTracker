@@ -4,8 +4,6 @@ go 1.17
 
 require tinygo.org/x/bluetooth v0.3.0
 
-require github.com/ysoldak/magcal v0.2.0
-
 require tinygo.org/x/drivers v0.18.0
 
 require github.com/tracktum/go-ahrs v1.0.0
