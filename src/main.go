@@ -17,6 +17,10 @@ func main() {
 	led.Configure(machine.PinConfig{Mode: machine.PinOutput})
 	led.Low()
 
+	pwr := machine.LED_PWR
+	pwr.Configure(machine.PinConfig{Mode: machine.PinOutput})
+	pwr.High()
+
 	debugPin.Configure(machine.PinConfig{Mode: machine.PinOutput})
 
 	// IMU
