@@ -36,6 +36,8 @@ var paraBuffer []byte = make([]byte, 20)
 // Last two bytes is CRC, see theory link
 var fff6Attributes = []byte{0x0d, 0x00, 0x02, 0x00, 0x02, 0x00, 0x22, 0x00, 0x02, 0x00, 0x01, 0x00, 0xcd, 0xa0}
 
+var paired = false
+
 func paraSetup() {
 
 	blue.Configure(machine.PinConfig{Mode: machine.PinOutput})
@@ -127,14 +129,31 @@ func paraSetup() {
 	})
 	adv.Start()
 
+	go func() {
+		for {
+			time.Sleep(500 * time.Millisecond)
+			if paired {
+				blue.Low()
+			} else {
+				if blue.Get() {
+					blue.Low()
+				} else {
+					blue.High()
+				}
+			}
+		}
+	}()
+
 	ble.SetConnectHandler(func(device bluetooth.Addresser, connected bool) {
 		if connected {
 			blue.Low()
 			sendAfter = time.Now().Add(1 * time.Second)
 			paraBoot()
+			paired = true
 		} else {
 			blue.High()
 			sendAfter = time.Time{}
+			paired = false
 		}
 	})
 
