@@ -3,9 +3,17 @@
 
 package main
 
+import "time"
+
 var channels = [8]uint16{1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500}
 
 func paraSetup() {
+	go func() {
+		for {
+			time.Sleep(5 * time.Second)
+			println(time.Now().Unix(), ": ", " [", channels[0], ",", channels[1], ",", channels[2], "]")
+		}
+	}()
 }
 
 func paraSet(idx byte, value uint16) {
@@ -13,5 +21,4 @@ func paraSet(idx byte, value uint16) {
 }
 
 func paraSend() {
-	println(channels[0], " ", channels[1], " ", channels[2])
 }

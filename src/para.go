@@ -131,6 +131,16 @@ func paraSetup() {
 
 	go func() {
 		for {
+			time.Sleep(5 * time.Second)
+			addr, err := ble.Address()
+			if err == nil {
+				println(time.Now().Unix(), ": ", addr.MAC.String(), " [", channels[0], ",", channels[1], ",", channels[2], "]")
+			}
+		}
+	}()
+
+	go func() {
+		for {
 			time.Sleep(500 * time.Millisecond)
 			if paired {
 				blue.Low()
