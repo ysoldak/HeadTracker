@@ -28,7 +28,7 @@ func main() {
 	imu.Configure()
 
 	// Orientation
-	fusion := ahrs.NewMadgwick(0.05, float64(time.Second/PERIOD))
+	fusion := ahrs.NewMadgwick(0.01, float64(time.Second/PERIOD))
 
 	// Bluetooth
 	paraSetup()
