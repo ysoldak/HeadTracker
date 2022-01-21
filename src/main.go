@@ -17,6 +17,17 @@ func main() {
 	led.Configure(machine.PinConfig{Mode: machine.PinOutput})
 	led.Low()
 
+	go func() {
+		for {
+			time.Sleep(500 * time.Millisecond)
+			if led.Get() {
+				led.Low()
+			} else {
+				led.High()
+			}
+		}
+	}()
+
 	pwr := machine.LED_PWR
 	pwr.Configure(machine.PinConfig{Mode: machine.PinOutput})
 	pwr.High()
@@ -42,27 +53,29 @@ func main() {
 
 		now := time.Now()
 
-		gx, gy, gz, ax, ay, az := imu.Read()
 		debugToggle()
 
-		var q [4]float64
-		if now.Before(warmup) {
-			q = orientationToQuaternion(ax, ay, az, 1, 0, 0) // assume N since we don't have mag
-			initial[0], initial[1], initial[2] = quaternionToAngles(q)
-			fusion.Quaternions = q
-		} else {
-			q = fusion.Update6D(
-				gx*degToRad, gy*degToRad, gz*degToRad,
-				ax, ay, az,
-			)
+		gx, gy, gz, ax, ay, az, err := imu.Read()
+		if err == nil {
+			var q [4]float64
+			if now.Before(warmup) {
+				q = orientationToQuaternion(ax, ay, az, 1, 0, 0) // assume N since we don't have mag
+				initial[0], initial[1], initial[2] = quaternionToAngles(q)
+				fusion.Quaternions = q
+			} else {
+				q = fusion.Update6D(
+					gx*degToRad, gy*degToRad, gz*degToRad,
+					ax, ay, az,
+				)
+			}
+			current[0], current[1], current[2] = quaternionToAngles(q)
+			for i := byte(0); i < 3; i++ {
+				angle := angleMinusAngle(current[i], initial[i])
+				value := angleToChannel(angle, 45)
+				paraSet(i, value)
+			}
 		}
 
-		current[0], current[1], current[2] = quaternionToAngles(q)
-		for i := byte(0); i < 3; i++ {
-			angle := angleMinusAngle(current[i], initial[i])
-			value := angleToChannel(angle, 45)
-			paraSet(i, value)
-		}
 		paraSend()
 
 		sleep := PERIOD - time.Since(now)

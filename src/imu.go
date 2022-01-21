@@ -41,9 +41,15 @@ func (imu *IMU) Configure() {
 
 }
 
-func (imu *IMU) Read() (gx, gy, gz, ax, ay, az float64) {
-	gxi, gyi, gzi, _ := imu.device.ReadRotation()
-	axi, ayi, azi, _ := imu.device.ReadAcceleration()
+func (imu *IMU) Read() (gx, gy, gz, ax, ay, az float64, err error) {
+	gxi, gyi, gzi, err := imu.device.ReadRotation()
+	for err != nil {
+		return 0, 0, 0, 0, 0, 0, err
+	}
+	axi, ayi, azi, err := imu.device.ReadAcceleration()
+	for err != nil {
+		return 0, 0, 0, 0, 0, 0, err
+	}
 
 	gxi, gyi, gzi = imu.gyrCal.apply(gxi, gyi, gzi)
 

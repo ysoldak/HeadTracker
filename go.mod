@@ -19,6 +19,8 @@ require (
 	golang.org/x/sys v0.0.0-20210423082822-04245dca01da // indirect
 )
 
+replace tinygo.org/x/drivers => ../tinygo-drivers
+
 replace tinygo.org/x/bluetooth => ../bluetooth
 
 replace github.com/ysoldak/magcal => ../magcal
