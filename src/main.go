@@ -44,6 +44,11 @@ func main() {
 	// Bluetooth
 	paraSetup()
 
+	// Display
+	display := &Display{}
+	display.Configure(paraAddress)
+	go display.Show()
+
 	// Main loop
 	initial := [3]float32{0, 0, 0}
 	current := [3]float32{0, 0, 0}
@@ -73,6 +78,7 @@ func main() {
 				angle := angleMinusAngle(current[i], initial[i])
 				value := angleToChannel(angle, 45)
 				paraSet(i, value)
+				display.Set(i, value)
 			}
 		}
 

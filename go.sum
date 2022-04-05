@@ -88,6 +88,9 @@ gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f/go.mod h1:Co6ibVJAznAaIkqp8
 gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c h1:dUUwHk2QECo/6vqA44rthZ8ie2QXMNeKRTHCNY2nXvo=
 gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
 rsc.io/pdf v0.1.1/go.mod h1:n8OzWcQ6Sp37PL01nO98y4iUCRdTGarVfzxY20ICaU4=
+tinygo.org/x/tinydraw v0.0.0-20211229235716-f3521ee65ebb h1:aFoHLquCltOz3Avwdar98SuTFFikUiZ1BjFadw14BCQ=
+tinygo.org/x/tinydraw v0.0.0-20211229235716-f3521ee65ebb/go.mod h1:aZT1S4Bf6Hj+B5OPIs28Hk8TxXZBiWBnh9Z64PeB4DE=
+tinygo.org/x/tinyfont v0.2.1 h1:FAaemBzw8wsfhAtG6fWW+QjyWw/K8YqEeiWo4N1pv4o=
 tinygo.org/x/tinyfont v0.2.1/go.mod h1:eLqnYSrFRjt5STxWaMeOWJTzrKhXqpWw7nU3bPfKOAM=
 tinygo.org/x/tinyfs v0.1.0/go.mod h1:ysc8Y92iHfhTXeyEM9+c7zviUQ4fN9UCFgSOFfMWv20=
 tinygo.org/x/tinyterm v0.1.0/go.mod h1:/DDhNnGwNF2/tNgHywvyZuCGnbH3ov49Z/6e8LPLRR4=

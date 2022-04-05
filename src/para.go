@@ -38,6 +38,8 @@ var fff6Attributes = []byte{0x0d, 0x00, 0x02, 0x00, 0x02, 0x00, 0x22, 0x00, 0x02
 
 var paired = false
 
+var paraAddress = "B1:6B:00:B5:BA:BE"
+
 func paraSetup() {
 
 	blue.Configure(machine.PinConfig{Mode: machine.PinOutput})
@@ -129,13 +131,13 @@ func paraSetup() {
 	})
 	adv.Start()
 
+	addr, _ := ble.Address()
+	paraAddress = addr.MAC.String()
+
 	go func() {
 		for {
 			time.Sleep(5 * time.Second)
-			addr, err := ble.Address()
-			if err == nil {
-				println(time.Now().Unix(), ": ", addr.MAC.String(), " [", channels[0], ",", channels[1], ",", channels[2], "]")
-			}
+			println(time.Now().Unix(), ": ", paraAddress, " [", channels[0], ",", channels[1], ",", channels[2], "]")
 		}
 	}()
 
