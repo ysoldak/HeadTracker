@@ -1,3 +1,6 @@
+//go:build nano_33_ble
+// +build nano_33_ble
+
 package main
 
 import (
@@ -41,7 +44,7 @@ func (imu *IMU) Configure() {
 
 }
 
-func (imu *IMU) Read() (gx, gy, gz, ax, ay, az float64, err error) {
+func (imu *IMU) Read(calibrate bool) (gx, gy, gz, ax, ay, az float64, err error) {
 	gxi, gyi, gzi, err := imu.device.ReadRotation()
 	for err != nil {
 		return 0, 0, 0, 0, 0, 0, err
@@ -51,7 +54,10 @@ func (imu *IMU) Read() (gx, gy, gz, ax, ay, az float64, err error) {
 		return 0, 0, 0, 0, 0, 0, err
 	}
 
-	gxi, gyi, gzi = imu.gyrCal.apply(gxi, gyi, gzi)
+	if calibrate {
+		imu.gyrCal.apply(gxi, gyi, gzi)
+	}
+	gxi, gyi, gzi = imu.gyrCal.get(gxi, gyi, gzi)
 
 	gx, gy, gz = float64(-gxi)/1000000, float64(gyi)/1000000, float64(gzi)/1000000
 	ax, ay, az = float64(-axi)/1000000, float64(ayi)/1000000, float64(azi)/1000000

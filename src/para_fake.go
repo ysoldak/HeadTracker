@@ -12,12 +12,6 @@ var paired = false
 var paraAddress = "B1:6B:00:B5:BA:BE"
 
 func paraSetup() {
-	go func() {
-		for {
-			time.Sleep(5 * time.Second)
-			println(time.Now().Unix(), ": ", " [", channels[0], ",", channels[1], ",", channels[2], "]")
-		}
-	}()
 }
 
 func paraSet(idx byte, value uint16) {

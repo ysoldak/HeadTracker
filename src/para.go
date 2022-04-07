@@ -4,13 +4,10 @@
 package main
 
 import (
-	"machine"
 	"time"
 
 	"tinygo.org/x/bluetooth"
 )
-
-var blue = machine.LED_BLUE
 
 var sendAfter time.Time
 
@@ -41,9 +38,6 @@ var paired = false
 var paraAddress = "B1:6B:00:B5:BA:BE"
 
 func paraSetup() {
-
-	blue.Configure(machine.PinConfig{Mode: machine.PinOutput})
-	blue.High()
 
 	ble.Enable()
 
@@ -134,36 +128,12 @@ func paraSetup() {
 	addr, _ := ble.Address()
 	paraAddress = addr.MAC.String()
 
-	go func() {
-		for {
-			time.Sleep(5 * time.Second)
-			println(time.Now().Unix(), ": ", paraAddress, " [", channels[0], ",", channels[1], ",", channels[2], "]")
-		}
-	}()
-
-	go func() {
-		for {
-			time.Sleep(500 * time.Millisecond)
-			if paired {
-				blue.Low()
-			} else {
-				if blue.Get() {
-					blue.Low()
-				} else {
-					blue.High()
-				}
-			}
-		}
-	}()
-
 	ble.SetConnectHandler(func(device bluetooth.Addresser, connected bool) {
 		if connected {
-			blue.Low()
 			sendAfter = time.Now().Add(1 * time.Second)
 			paraBoot()
 			paired = true
 		} else {
-			blue.High()
 			sendAfter = time.Time{}
 			paired = false
 		}

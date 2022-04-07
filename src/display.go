@@ -78,3 +78,17 @@ func (d *Display) ShowValue(idx int) {
 func (d *Display) Set(idx byte, value uint16) {
 	d.values[idx] = value
 }
+
+// --------------------------------------
+
+var display *Display
+
+func displaySetup() {
+	display = &Display{}
+	display.Configure(paraAddress)
+	go display.Show()
+}
+
+func displaySet(idx byte, value uint16) {
+	display.Set(idx, value)
+}

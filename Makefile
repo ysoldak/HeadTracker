@@ -42,3 +42,12 @@ restore:
 jlink-restore:
 	nrfjprog -f nrf52 --eraseall
 	nrfjprog -f nrf52 --program $(ARDUINO_BOOTLOADER_BIN)
+
+# ---
+
+build-xiao:
+	tinygo build -target=xiao-ble -size=full -opt=z -print-allocs=main -o ./build/build.uf2 ./src
+
+flash-xiao:
+	tinygo flash -target=xiao-ble -size=full -opt=z -print-allocs=main -port=/dev/cu.usbmodem14201 -serial=uart ./src
+
