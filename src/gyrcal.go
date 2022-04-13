@@ -21,10 +21,10 @@ func (g *GyrCal) apply(x, y, z int32) {
 func (g *GyrCal) applyAxis(i, v int32) {
 	tmp := v - g.offset[i]
 	if tmp > 0 && tmp > GYRO_CAL_THRESHOLD {
-		tmp = 1
+		tmp = GYRO_CAL_THRESHOLD
 	}
 	if tmp < 0 && tmp < -GYRO_CAL_THRESHOLD {
-		tmp = -1
+		tmp = -GYRO_CAL_THRESHOLD
 	}
 	g.sum[i] += tmp
 	g.count[i]++
