@@ -25,21 +25,20 @@ func (imu *IMU) Configure1() {
 }
 
 func (imu *IMU) Configure() {
-	// Board setup
+	// Configure I2C
 	machine.I2C1.Configure(machine.I2CConfig{
 		Frequency: machine.TWI_FREQ_100KHZ,
 		SDA:       machine.SDA1_PIN,
 		SCL:       machine.SCL1_PIN,
 	})
-	time.Sleep(1 * time.Second)
 
-	// LSM6DS3 setup
-	machine.LSM_PWR.Configure(machine.PinConfig{Mode: machine.PinOutput})
-	machine.LSM_PWR.High()
-	time.Sleep(2 * time.Second)
+	// Wait a bit
+	time.Sleep(10 * time.Millisecond)
+
+	// Configure IMU
 	imu.device = lsm6ds3.New(machine.I2C1)
 	imu.device.Configure(lsm6ds3.Configuration{
-		AccelRange:      lsm6ds3.ACCEL_2G,
+		AccelRange:      lsm6ds3.ACCEL_4G,
 		AccelSampleRate: lsm6ds3.ACCEL_SR_104,
 		GyroRange:       lsm6ds3.GYRO_250DPS,
 		GyroSampleRate:  lsm6ds3.GYRO_SR_104,
@@ -67,5 +66,4 @@ func (imu *IMU) Read(calibrate bool) (gx, gy, gz, ax, ay, az float64, err error)
 	gx, gy, gz = float64(gxi)/1000000, float64(-gyi)/1000000, float64(-gzi)/1000000
 	ax, ay, az = float64(-axi)/1000000, float64(ayi)/1000000, float64(azi)/1000000
 	return
-	// return 0, 0, 0, 0, 0, 0, nil
 }

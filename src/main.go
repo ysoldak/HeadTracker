@@ -52,7 +52,7 @@ func main() {
 		gx, gy, gz, ax, ay, az, err := imu.Read(!warmed)
 
 		// record initial orientation
-		if counter == 0 {
+		if counter == 10 {
 			q := orientationToQuaternion(ax, ay, az, 1, 0, 0) // assume N since we don't have mag
 			initial[0], initial[1], initial[2] = quaternionToAngles(q)
 			fusion.Quaternions = q
