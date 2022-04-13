@@ -1,7 +1,6 @@
 package main
 
 import (
-	"machine"
 	"time"
 
 	"github.com/tracktum/go-ahrs"
@@ -15,21 +14,7 @@ const (
 	PARA_COUNT  = int(200 * time.Millisecond / PERIOD)
 )
 
-const (
-	led  = machine.LED
-	ledR = machine.LED_RED
-	ledB = machine.LED_BLUE
-)
-
 func main() {
-
-	led.Configure(machine.PinConfig{Mode: machine.PinOutput})
-	ledR.Configure(machine.PinConfig{Mode: machine.PinOutput})
-	ledB.Configure(machine.PinConfig{Mode: machine.PinOutput})
-
-	led.Low()   // off
-	ledR.High() // off
-	ledB.High() // off
 
 	//debugPin.Configure(machine.PinConfig{Mode: machine.PinOutput})
 
@@ -93,7 +78,7 @@ func main() {
 
 		// indicate status
 		if counter%BLINK_COUNT == 0 { // indicate main loop running
-			togglePin(led)
+			toggle(led)
 		}
 		if counter%TRACE_COUNT == 0 { // print out state
 			println(time.Now().Unix(), ": ", paraAddress, " [", channels[0], ",", channels[1], ",", channels[2], "] (", imu.gyrCal.offset[0], ",", imu.gyrCal.offset[1], ",", imu.gyrCal.offset[2], ")")
@@ -102,7 +87,7 @@ func main() {
 			if paired {
 				ledB.Low() // on, connected
 			} else {
-				togglePin(ledB) // blink, advertising
+				toggle(ledB) // blink, advertising
 			}
 		}
 
@@ -112,12 +97,4 @@ func main() {
 
 	}
 
-}
-
-func togglePin(pin machine.Pin) {
-	if pin.Get() {
-		pin.Low()
-	} else {
-		pin.High()
-	}
 }
