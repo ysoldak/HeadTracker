@@ -57,7 +57,6 @@ func main() {
 	counter := 0
 	for {
 
-		// debugToggle()
 		if !warmed {
 			warmed = time.Now().After(warmup)
 		} else {
