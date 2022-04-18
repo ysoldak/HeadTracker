@@ -1,7 +1,7 @@
 //go:build nano_33_ble
 // +build nano_33_ble
 
-package main
+package display
 
 import (
 	"time"
@@ -21,7 +21,7 @@ func (d *Display) Show() {
 		}
 		if count == 0 {
 			tinyfont.WriteLineRotated(&d.device, &proggy.TinySZ8pt7b, 120, 0, "  :  :  :  :  :  ", c, tinyfont.ROTATION_180)
-			if c == WHITE && !paired {
+			if c == WHITE && !d.paired {
 				c = BLACK
 			} else {
 				c = WHITE

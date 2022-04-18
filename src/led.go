@@ -28,3 +28,19 @@ func toggle(pin machine.Pin) {
 		pin.High()
 	}
 }
+
+func off(pin machine.Pin) {
+	if pin == led {
+		pin.Low()
+	} else {
+		pin.High()
+	}
+}
+
+func on(pin machine.Pin) {
+	if pin == led {
+		pin.High()
+	} else {
+		pin.Low()
+	}
+}

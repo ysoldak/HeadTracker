@@ -1,7 +1,7 @@
 //go:build nano_33_ble
 // +build nano_33_ble
 
-package main
+package orientation
 
 import (
 	"machine"

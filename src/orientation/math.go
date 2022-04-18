@@ -1,4 +1,6 @@
-package main
+// This file only ever needed when working with magnetometer (initial orientation is important)
+
+package orientation
 
 import "math"
 
@@ -22,17 +24,6 @@ func angleMinusAngle(a, b float32) float32 {
 		diff -= 360
 	}
 	return diff
-}
-
-func angleToChannel(angle float32, max float32) uint16 {
-	result := uint16(1500 + 500/max*angle)
-	if result < 988 {
-		return 988
-	}
-	if result > 2012 {
-		return 2012
-	}
-	return result
 }
 
 // -- Quaternion initialisation --

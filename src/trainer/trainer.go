@@ -1,7 +1,7 @@
 //go:build s140v7
 // +build s140v7
 
-package main
+package trainer
 
 import (
 	"time"
@@ -9,23 +9,10 @@ import (
 	"tinygo.org/x/bluetooth"
 )
 
-var sendAfter time.Time
-
-var ble = bluetooth.DefaultAdapter
-var adv *bluetooth.Advertisement
-var fff6Handle bluetooth.Characteristic
-
-var channels = [8]uint16{1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500}
-
 // Have to send this to master radio on connect otherwise high chance opentx para code will never receive "Connected" message
 // Since it looks for "Connected\r\n" and sometimes(?) bluetooth underlying layer on master radio
 // never sends "\r\n" and starts sending trainer data directly
 var bootBuffer = []byte{0x0d, 0x0a}
-
-// 2 + 8(max 16) + 2
-var paraBuffer []byte = make([]byte, 20)
-
-// var paraBuffer = []byte{0x7e, 0x80, 0x85, 0x60, 0xa7, 0x55, 0x7d, 0x5d, 0xe5, 0xdc, 0x3d, 0xc3, 0xdc, 0x3d, 0xc3, 0x0f, 0x7e}
 
 // Theory https://devzone.nordicsemi.com/f/nordic-q-a/15571/automatically-start-notification-upon-connection-event-manually-write-cccd---short-tutorial-on-notifications
 // In practice these values were manually extracted after connecting to head tracker with BlueSee app
@@ -33,13 +20,31 @@ var paraBuffer []byte = make([]byte, 20)
 // Last two bytes is CRC, see theory link
 var fff6Attributes = []byte{0x0d, 0x00, 0x02, 0x00, 0x02, 0x00, 0x22, 0x00, 0x02, 0x00, 0x01, 0x00, 0xcd, 0xa0}
 
-var paired = false
+type Trainer struct {
+	adapter    *bluetooth.Adapter
+	adv        *bluetooth.Advertisement
+	fff6Handle bluetooth.Characteristic
 
-var paraAddress = "B1:6B:00:B5:BA:BE"
+	buffer    []byte
+	sendAfter time.Time
 
-func paraSetup() {
+	Paired   bool
+	Address  string
+	Channels [8]uint16
+}
 
-	ble.Enable()
+func New() *Trainer {
+	return &Trainer{
+		adapter:  bluetooth.DefaultAdapter,
+		Paired:   false,
+		buffer:   make([]byte, 20),
+		Channels: [8]uint16{1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500},
+		Address:  "B1:6B:00:B5:BA:BE",
+	}
+}
+
+func (t *Trainer) Configure() {
+	t.adapter.Enable()
 
 	sysid := bluetooth.CharacteristicConfig{
 		Handle: nil,
@@ -69,7 +74,7 @@ func paraSetup() {
 		Flags:  bluetooth.CharacteristicReadPermission,
 	}
 
-	ble.AddService(&bluetooth.Service{
+	t.adapter.AddService(&bluetooth.Service{
 		UUID: bluetooth.ServiceUUIDDeviceInformation,
 		Characteristics: []bluetooth.CharacteristicConfig{
 			sysid, manufacturer, ieee, pnpid,
@@ -105,96 +110,96 @@ func paraSetup() {
 	}
 
 	fff6 := bluetooth.CharacteristicConfig{
-		Handle: &fff6Handle,
+		Handle: &t.fff6Handle,
 		UUID:   bluetooth.New16BitUUID(0xFFF6),
 		Value:  []byte{},
 		Flags:  bluetooth.CharacteristicWriteWithoutResponsePermission | bluetooth.CharacteristicNotifyPermission,
 	}
 
-	ble.AddService(&bluetooth.Service{
+	t.adapter.AddService(&bluetooth.Service{
 		UUID: bluetooth.New16BitUUID(0xFFF0),
 		Characteristics: []bluetooth.CharacteristicConfig{
 			fff1, fff2, fff3, fff5, fff6,
 		},
 	})
 
-	adv = ble.DefaultAdvertisement()
-	adv.Configure(bluetooth.AdvertisementOptions{
+	t.adv = t.adapter.DefaultAdvertisement()
+	t.adv.Configure(bluetooth.AdvertisementOptions{
 		LocalName:    "Hello",
 		ServiceUUIDs: []bluetooth.UUID{bluetooth.New16BitUUID(0xFFF0)},
 	})
-	adv.Start()
+	t.adv.Start()
 
-	addr, _ := ble.Address()
-	paraAddress = addr.MAC.String()
+	addr, _ := t.adapter.Address()
+	t.Address = addr.MAC.String()
 
-	ble.SetConnectHandler(func(device bluetooth.Addresser, connected bool) {
+	t.adapter.SetConnectHandler(func(device bluetooth.Addresser, connected bool) {
 		if connected {
-			sendAfter = time.Now().Add(1 * time.Second)
-			paraBoot()
-			paired = true
+			t.sendAfter = time.Now().Add(1 * time.Second)
+			t.fff6Handle.SetAttributes(fff6Attributes) // set CCCD bit telling the bluetooth stack notification is enabled / client subscribed
+			t.fff6Handle.Write(bootBuffer)             // sends '\r\n', it helps remote master switch to receiveTrainer state
+			t.Paired = true
 		} else {
-			sendAfter = time.Time{}
-			paired = false
+			t.sendAfter = time.Time{}
+			t.Paired = false
 		}
 	})
 
 }
 
-// paraBoot sends '\r\n', it helps remote master switch to receiveTrainer state
-func paraBoot() {
-	fff6Handle.SetAttributes(fff6Attributes)
-	fff6Handle.Write(bootBuffer)
+func (t *Trainer) Run(period time.Duration) {
+	for {
+		if t.sendAfter.IsZero() || time.Now().Before(t.sendAfter) {
+			return
+		}
+		size := t.encode()
+		n, err := t.fff6Handle.Write(t.buffer[:size])
+		if err != nil {
+			println(err.Error())
+			println(n)
+		}
+		time.Sleep(period)
+	}
 }
 
-func paraSet(idx byte, value uint16) {
-	channels[idx] = value
-}
+// -- PARA Protocol ------------------------------------------------------------
+
+// 2 + 8(max 16) + 2
 
 const START_STOP byte = 0x7E
 const BYTE_STUFF byte = 0x7D
 const STUFF_MASK byte = 0x20
 
 // Escapes bytes that equal to START_STOP and updates CRC
-func paraPushByte(b byte, bufferIndex *byte, crc *byte) {
+func (t *Trainer) push(b byte, bufferIndex *byte, crc *byte) {
 	*crc ^= b
 	if b == START_STOP || b == BYTE_STUFF {
-		paraBuffer[*bufferIndex] = BYTE_STUFF
+		t.buffer[*bufferIndex] = BYTE_STUFF
 		*bufferIndex++
 		b ^= STUFF_MASK
 	}
-	paraBuffer[*bufferIndex] = b
+	t.buffer[*bufferIndex] = b
 	*bufferIndex++
 }
 
-// Encodes channels array to para trainer packet (adapted from OpenTX source code)
-func paraSend() {
-
-	if sendAfter.IsZero() || time.Now().Before(sendAfter) {
-		return
-	}
+// Encodes the channels array to a para trainer packet (adapted from OpenTX source code)
+func (t *Trainer) encode() byte {
 
 	var bufferIndex byte = 0
 	var crc byte = 0x00
 
-	paraBuffer[bufferIndex] = START_STOP
+	t.buffer[bufferIndex] = START_STOP
 	bufferIndex++
-	paraPushByte(0x80, &bufferIndex, &crc)
+	t.push(0x80, &bufferIndex, &crc)
 	for channel := 0; channel < 8; channel += 2 {
-		channelValue1 := channels[channel]
-		channelValue2 := channels[channel+1]
-		paraPushByte(byte(channelValue1&0x00ff), &bufferIndex, &crc)
-		paraPushByte(byte((channelValue1&0x0f00)>>4)+byte((channelValue2&0x00f0)>>4), &bufferIndex, &crc)
-		paraPushByte(byte((channelValue2&0x000f)<<4)+byte((channelValue2&0x0f00)>>8), &bufferIndex, &crc)
+		channelValue1 := t.Channels[channel]
+		channelValue2 := t.Channels[channel+1]
+		t.push(byte(channelValue1&0x00ff), &bufferIndex, &crc)
+		t.push(byte((channelValue1&0x0f00)>>4)+byte((channelValue2&0x00f0)>>4), &bufferIndex, &crc)
+		t.push(byte((channelValue2&0x000f)<<4)+byte((channelValue2&0x0f00)>>8), &bufferIndex, &crc)
 	}
-	paraBuffer[bufferIndex] = crc
-	paraBuffer[bufferIndex+1] = START_STOP
+	t.buffer[bufferIndex] = crc
+	t.buffer[bufferIndex+1] = START_STOP
 
-	// fmt.Printf("%x\r\n", paraBuffer[:bufferIndex+2])
-
-	n, err := fff6Handle.Write(paraBuffer[:bufferIndex+2])
-	if err != nil {
-		println(err.Error())
-		println(n)
-	}
+	return bufferIndex + 2
 }

@@ -1,7 +1,7 @@
 //go:build xiao_ble
 // +build xiao_ble
 
-package main
+package orientation
 
 import (
 	"machine"
@@ -19,9 +19,6 @@ func NewIMU() *IMU {
 	return &IMU{
 		gyrCal: &GyrCal{},
 	}
-}
-
-func (imu *IMU) Configure1() {
 }
 
 func (imu *IMU) Configure() {

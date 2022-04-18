@@ -3,98 +3,108 @@ package main
 import (
 	"time"
 
-	"github.com/tracktum/go-ahrs"
+	"github.com/ysoldak/HeadTracker/src/display"
+	"github.com/ysoldak/HeadTracker/src/orientation"
+	"github.com/ysoldak/HeadTracker/src/trainer"
 )
 
 const (
-	angleMax    = 45
-	PERIOD      = 20 * time.Millisecond
-	BLINK_COUNT = int(500 * time.Millisecond / PERIOD)
-	TRACE_COUNT = int(1000 * time.Millisecond / PERIOD)
-	PARA_COUNT  = int(200 * time.Millisecond / PERIOD)
+	angleMax         = 45
+	PERIOD           = 20 * time.Millisecond
+	BLINK_MAIN_COUNT = int(500 * time.Millisecond / PERIOD)
+	BLINK_PARA_COUNT = int(200 * time.Millisecond / PERIOD)
+	TRACE_COUNT      = int(1000 * time.Millisecond / PERIOD)
 )
+
+var (
+	d *display.Display
+	t *trainer.Trainer
+	o *orientation.Orientation
+)
+
+func init() {
+
+	// Orientation
+	o = orientation.New()
+
+	// Bluetooth (FrSKY's PARA trainer protocol)
+	t = trainer.New()
+	t.Configure()
+	go t.Run(PERIOD)
+
+	// Display
+	d = display.New()
+	d.Configure(t.Address)
+	go d.Run(5 * PERIOD)
+
+}
 
 func main() {
 
-	//debugPin.Configure(machine.PinConfig{Mode: machine.PinOutput})
+	// warmup
+	for i := 0; i < 10; i++ {
+		o.Update(false)
+		time.Sleep(PERIOD)
+	}
 
-	// IMU
-	imu := NewIMU()
-	imu.Configure()
-
-	ledR.Low() // on, imu initialised, warmup starts
-
-	// Orientation
-	fusion := ahrs.NewMadgwick(0.01, float64(time.Second/PERIOD))
-
-	// Bluetooth
-	paraSetup()
-
-	// Display
-	displaySetup()
-
-	// Main loop
-	initial := [3]float32{0, 0, 0}
-	current := [3]float32{0, 0, 0}
-	warmup := time.Now().Add(60 * time.Second)
-	warmed := false
-
-	counter := 0
+	// main loop
+	iter := 0
 	for {
 
-		if !warmed {
-			warmed = time.Now().After(warmup)
-		} else {
-			ledR.High() // off, warmup finished
-		}
+		// update orientation
+		o.Update(true)
+		r := angleToChannel(o.Roll, 45)
+		p := angleToChannel(o.Pitch, 45)
+		y := angleToChannel(o.Yaw, 45)
 
-		// read sensors
-		gx, gy, gz, ax, ay, az, err := imu.Read(!warmed)
+		// update trainer
+		t.Channels[0], t.Channels[1], t.Channels[2] = r, p, y
 
-		// record initial orientation
-		if counter == 10 {
-			q := orientationToQuaternion(ax, ay, az, 1, 0, 0) // assume N since we don't have mag
-			initial[0], initial[1], initial[2] = quaternionToAngles(q)
-			fusion.Quaternions = q
-		}
+		// update display
+		d.Channels[0], d.Channels[1], d.Channels[2] = r, p, y
+		d.Paired = t.Paired
 
-		// main logic
-		if warmed && err == nil {
-			q := fusion.Update6D(
-				gx*degToRad, gy*degToRad, gz*degToRad,
-				ax, ay, az,
-			)
-			current[0], current[1], current[2] = quaternionToAngles(q)
-			for i := byte(0); i < 3; i++ {
-				angle := angleMinusAngle(current[i], initial[i])
-				value := angleToChannel(angle, 45)
-				paraSet(i, value)
-				displaySet(i, value)
-			}
-		}
+		// blink and trace
+		state(iter)
+		trace(r, p, y, iter)
 
-		// push data
-		paraSend()
-
-		// indicate status
-		if counter%BLINK_COUNT == 0 { // indicate main loop running
-			toggle(led)
-		}
-		if counter%TRACE_COUNT == 0 { // print out state
-			println(time.Now().Unix(), ": ", paraAddress, " [", channels[0], ",", channels[1], ",", channels[2], "] (", imu.gyrCal.offset[0], ",", imu.gyrCal.offset[1], ",", imu.gyrCal.offset[2], ")")
-		}
-		if counter%PARA_COUNT == 0 { // indicate para (bluetooth) state
-			if paired {
-				ledB.Low() // on, connected
-			} else {
-				toggle(ledB) // blink, advertising
-			}
-		}
-
-		counter++
-
+		// wait
 		time.Sleep(PERIOD)
+		iter++
 
 	}
 
+}
+
+// --- Utils -------------------------------------------------------------------
+
+func angleToChannel(angle float32, max float32) uint16 {
+	result := uint16(1500 + 500/max*angle)
+	if result < 988 {
+		return 988
+	}
+	if result > 2012 {
+		return 2012
+	}
+	return result
+}
+
+func state(iter int) {
+	if iter%BLINK_MAIN_COUNT == 0 { // indicate main loop running
+		toggle(led)
+	}
+	if iter%BLINK_PARA_COUNT == 0 { // indicate para (bluetooth) state
+		if t.Paired {
+			on(ledB) // on, connected
+		} else {
+			toggle(ledB) // blink, advertising
+		}
+	}
+}
+
+func trace(r, p, y uint16, iter int) {
+	if iter%TRACE_COUNT == 0 { // print out state
+		rc, pc, yc := o.Calibration()
+		println(time.Now().Unix(), ": ", t.Address, " [", r, ",", p, ",", y, "] (", rc, ",", pc, ",", yc, ")")
+	}
 }

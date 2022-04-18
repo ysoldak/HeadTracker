@@ -1,6 +1,7 @@
-package main
+package orientation
 
-const GYRO_CAL_THRESHOLD = 1_000_000
+const gyrCalBatchSize = 50
+const gyrCalThreshold = 1_000_000
 
 type GyrCal struct {
 	offset [3]int32
@@ -20,15 +21,15 @@ func (g *GyrCal) apply(x, y, z int32) {
 
 func (g *GyrCal) applyAxis(i, v int32) {
 	tmp := v - g.offset[i]
-	if tmp > 0 && tmp > GYRO_CAL_THRESHOLD {
-		tmp = GYRO_CAL_THRESHOLD
+	if tmp > 0 && tmp > gyrCalThreshold {
+		tmp = gyrCalThreshold
 	}
-	if tmp < 0 && tmp < -GYRO_CAL_THRESHOLD {
-		tmp = -GYRO_CAL_THRESHOLD
+	if tmp < 0 && tmp < -gyrCalThreshold {
+		tmp = -gyrCalThreshold
 	}
 	g.sum[i] += tmp
 	g.count[i]++
-	if g.count[i] > 100 {
+	if g.count[i] > gyrCalBatchSize {
 		g.offset[i] += g.sum[i] / g.count[i] / 2
 		g.count[i] = 0
 		g.sum[i] = 0
