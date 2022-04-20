@@ -149,8 +149,9 @@ func (t *Trainer) Configure() {
 
 func (t *Trainer) Run(period time.Duration) {
 	for {
+		time.Sleep(period)
 		if t.sendAfter.IsZero() || time.Now().Before(t.sendAfter) {
-			return
+			continue
 		}
 		size := t.encode()
 		n, err := t.fff6Handle.Write(t.buffer[:size])
@@ -158,7 +159,6 @@ func (t *Trainer) Run(period time.Duration) {
 			println(err.Error())
 			println(n)
 		}
-		time.Sleep(period)
 	}
 }
 

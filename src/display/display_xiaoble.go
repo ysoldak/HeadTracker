@@ -27,6 +27,7 @@ func (d *Display) showValue(idx int) {
 func (d *Display) showPaired() {
 	if d.blinkCount > 0 {
 		d.blinkCount--
+		return
 	}
 	tinyfont.WriteLineRotated(&d.device, &proggy.TinySZ8pt7b, 8, 28, "  :  :  :  :  :  ", d.blinkColor, tinyfont.NO_ROTATION)
 	if d.blinkColor == WHITE && !d.Paired {

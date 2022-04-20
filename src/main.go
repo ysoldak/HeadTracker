@@ -12,6 +12,7 @@ const (
 	angleMax         = 45
 	PERIOD           = 20 * time.Millisecond
 	BLINK_MAIN_COUNT = int(500 * time.Millisecond / PERIOD)
+	BLINK_WARM_COUNT = int(200 * time.Millisecond / PERIOD)
 	BLINK_PARA_COUNT = int(200 * time.Millisecond / PERIOD)
 	TRACE_COUNT      = int(1000 * time.Millisecond / PERIOD)
 )
@@ -26,6 +27,7 @@ func init() {
 
 	// Orientation
 	o = orientation.New()
+	o.Configure(PERIOD)
 
 	// Bluetooth (FrSKY's PARA trainer protocol)
 	t = trainer.New()
@@ -41,32 +43,42 @@ func init() {
 
 func main() {
 
-	// warmup
+	// warm up
 	for i := 0; i < 10; i++ {
 		o.Update(false)
 		time.Sleep(PERIOD)
 	}
+	// record initial orientation
+	o.Center()
+	// stabilize gyroscope
+	// for !o.Stable() {
+	// 	o.Update(false)
+	// 	d.Paired = t.Paired
+	// 	state(iter)
+	// 	time.Sleep(PERIOD)
+	// 	iter++
+	// }
 
 	// main loop
 	iter := 0
 	for {
 
 		// update orientation
-		o.Update(true)
-		r := angleToChannel(o.Roll, 45)
-		p := angleToChannel(o.Pitch, 45)
-		y := angleToChannel(o.Yaw, 45)
-
-		// update trainer
-		t.Channels[0], t.Channels[1], t.Channels[2] = r, p, y
-
-		// update display
-		d.Channels[0], d.Channels[1], d.Channels[2] = r, p, y
+		if !o.Stable() {
+			o.Update(false)
+		} else {
+			o.Update(true)
+			for i, v := range o.Angles() {
+				a := angleToChannel(v, 45)
+				t.Channels[i] = a
+				d.Channels[i] = a
+			}
+		}
 		d.Paired = t.Paired
 
 		// blink and trace
 		state(iter)
-		trace(r, p, y, iter)
+		trace(iter)
 
 		// wait
 		time.Sleep(PERIOD)
@@ -93,6 +105,13 @@ func state(iter int) {
 	if iter%BLINK_MAIN_COUNT == 0 { // indicate main loop running
 		toggle(led)
 	}
+	if iter%BLINK_WARM_COUNT == 0 { // indicate warm loop running
+		if o.Stable() {
+			off(ledR) // off, warmed up
+		} else {
+			toggle(ledR)
+		}
+	}
 	if iter%BLINK_PARA_COUNT == 0 { // indicate para (bluetooth) state
 		if t.Paired {
 			on(ledB) // on, connected
@@ -102,9 +121,10 @@ func state(iter int) {
 	}
 }
 
-func trace(r, p, y uint16, iter int) {
+func trace(iter int) {
 	if iter%TRACE_COUNT == 0 { // print out state
-		rc, pc, yc := o.Calibration()
+		r, p, y := t.Channels[0], t.Channels[1], t.Channels[2]
+		rc, pc, yc := o.Offsets()
 		println(time.Now().Unix(), ": ", t.Address, " [", r, ",", p, ",", y, "] (", rc, ",", pc, ",", yc, ")")
 	}
 }

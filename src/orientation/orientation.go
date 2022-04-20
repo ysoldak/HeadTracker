@@ -7,10 +7,9 @@ import (
 )
 
 type Orientation struct {
-	imu              *IMU
-	fusion           ahrs.Madgwick
-	period           time.Duration
-	Roll, Pitch, Yaw float32
+	imu    *IMU
+	fusion ahrs.Madgwick
+	angles [2][3]float32 // initial and current, 3 of each
 }
 
 func New() *Orientation {
@@ -20,24 +19,23 @@ func New() *Orientation {
 }
 
 func (o *Orientation) Configure(period time.Duration) {
-	o.period = period
 	o.imu.Configure()
-	o.fusion = ahrs.NewMadgwick(0.01, float64(time.Second/o.period))
+	o.fusion = ahrs.NewMadgwick(0.01, float64(time.Second/period))
 }
 
 // TODO implement initial orientation when support magnetometer
 // Init orientation (calculates and stores initial angles)
-// func (o *Orientation) Init() {
-// 	gx, gy, gz, ax, ay, az, err := o.imu.Read(true)
-// 	q := orientationToQuaternion(ax, ay, az, 1, 0, 0) // assume N since we don't have mag
-// 	initial[0], initial[1], initial[2] = quaternionToAngles(q)
-// 	fusion.Quaternions = q
-// }
+func (o *Orientation) Center() {
+	_, _, _, ax, ay, az, _ := o.imu.Read()
+	q := orientationToQuaternion(ax, ay, az, 1, 0, 0) // assume N since we don't have mag
+	o.angles[0][0], o.angles[0][1], o.angles[0][2] = quaternionToAngles(q)
+	o.fusion.Quaternions = q
+}
 
 // Update orientation
 // TODO support magnetometer
 func (o *Orientation) Update(fusion bool) {
-	gx, gy, gz, ax, ay, az, err := o.imu.Read(true)
+	gx, gy, gz, ax, ay, az, err := o.imu.Read()
 	if err != nil {
 		println(err.Error())
 		return
@@ -47,10 +45,25 @@ func (o *Orientation) Update(fusion bool) {
 			gx*degToRad, gy*degToRad, gz*degToRad,
 			ax, ay, az,
 		)
-		o.Roll, o.Pitch, o.Yaw = quaternionToAngles(q)
+		o.angles[1][0], o.angles[1][1], o.angles[1][2] = quaternionToAngles(q)
+		o.angles[1][0] -= o.angles[0][0]
+		o.angles[1][1] -= o.angles[0][1]
+		o.angles[1][2] -= o.angles[0][2]
 	}
 }
 
-func (o *Orientation) Calibration() (roll, pitch, yaw int32) {
+func (o *Orientation) Stable() bool {
+	return o.imu.gyrCal.stable
+}
+
+func (o *Orientation) InitialAngles() [3]float32 {
+	return o.angles[0]
+}
+
+func (o *Orientation) Angles() [3]float32 {
+	return o.angles[1]
+}
+
+func (o *Orientation) Offsets() (roll, pitch, yaw int32) {
 	return o.imu.gyrCal.offset[0], o.imu.gyrCal.offset[1], o.imu.gyrCal.offset[2]
 }
