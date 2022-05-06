@@ -2,11 +2,18 @@
 
 Head Tracker runs on [Arduino Nano 33 BLE](https://store.arduino.cc/arduino-nano-33-ble) and [Seeeduino XIAO BLE Sense](https://www.seeedstudio.com/Seeed-XIAO-BLE-Sense-nRF52840-p-5253.html) boards and connects wirelessly via Bluetooth to [OpenTX](https://github.com/opentx/opentx) radios.
 
-<table><tr><td>
-<img src="case/CaseOnGoggles.jpg" title="Case mounted on the left side" style="float: left;"/>
+<table>
+<tr><td>
+<img src="case/DJICaseClosed.jpg" title="XIAO + SSD1306 on DJI Goggles" style="float: left;"/>
 </td><td>
-<img src="case/CaseOpen.jpg" title="Case open, showing wiring" style="float: right;"/>
-</td></tr></table>
+<img src="case/DJICaseOpen.jpg" title="XIAO + SSD1306 on DJI Goggles, wiring" style="float: right;"/>
+</td></tr>
+<tr><td>
+<img src="case/CaseOnGoggles.jpg" title="Nano 33 BLE on FatShark mounted on the left side" style="float: left;"/>
+</td><td>
+<img src="case/CaseOpen.jpg" title="Nano 33 BLE on FatShark, wiring" style="float: right;"/>
+</td></tr>
+</table>
 
 Listed boards are perfect for head tracker project, since they have both **IMU** for orientation and **Bluetooth** for connectivity.
 
@@ -16,7 +23,7 @@ Listed boards are perfect for head tracker project, since they have both **IMU**
 
 ## Connect to head tracker
 - Flash your board with a release file
-- Connect to the board with a **Serial console** and make note of the board **address** (something like: `7b:f5:1e:35:de:94`)
+- Connect to the board with a **Serial console** and make note of the board **address** (like: `7b:f5:1e:35:de:94`)
 - SSD1306 LED display can be connected (via I2C) to the board; in such case board address displyed there too
 - In your radio, select Trainer mode **"Master/BT"**, wait a bit and click "[Discover]"
 - Search for your board by address you noted earlier and **Connect** to it
