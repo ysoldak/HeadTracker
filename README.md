@@ -2,6 +2,10 @@
 
 Head Tracker runs on [Arduino Nano 33 BLE](https://store.arduino.cc/arduino-nano-33-ble) and [Seeeduino XIAO BLE Sense](https://www.seeedstudio.com/Seeed-XIAO-BLE-Sense-nRF52840-p-5253.html) boards and connects wirelessly via Bluetooth to [OpenTX](https://github.com/opentx/opentx) radios.
 
+Listed boards are perfect for head tracker project, since they have both **IMU** for orientation and **Bluetooth** for connectivity.
+
+This project switched to Go language ([TinyGo](https://tinygo.org) compiler) from classic Arduino C/C++ that had been archived in [arduino](https://github.com/ysoldak/HeadTracker/tree/arduino) branch.
+
 <table>
 <tr><td>
 <img src="case/DJICaseClosed.jpg" title="XIAO + SSD1306 on DJI Goggles" style="float: left;"/>
@@ -14,8 +18,6 @@ Head Tracker runs on [Arduino Nano 33 BLE](https://store.arduino.cc/arduino-nano
 <img src="case/CaseOpen.jpg" title="Nano 33 BLE on FatShark, wiring" style="float: right;"/>
 </td></tr>
 </table>
-
-Listed boards are perfect for head tracker project, since they have both **IMU** for orientation and **Bluetooth** for connectivity.
 
 ## Tested radios
 - FrSky X-Lite Pro (OpenTX)
