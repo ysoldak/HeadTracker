@@ -1,0 +1,50 @@
+name: Upload release artifacts
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    container: tinygo/tinygo:0.23.0
+    steps:
+
+    - name: Prepare
+      run: |
+        apt-get install -y make git
+
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Switch dependencies
+      run: |
+        sed -i.bak "s,=>.*tinygo-drivers,=> github.com/ysoldak/tinygo-drivers lsm6ds3tr ," go.mod
+        sed -i.bak "s,=>.*bluetooth,=> github.com/ysoldak/bluetooth sd-gatts-sys-attr ," go.mod
+        go mod tidy
+
+    - name: Build XIAO BLE Sense binary
+      run: make -f Makefile.xiao-ble build
+
+    - name: Build Nano 33 BLE binary
+      run: make -f Makefile.nano-33-ble build
+
+    - name: Upload XIAO BLE Sense binaries to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        tag: ${{ github.ref }}
+        file: ./build/ht_xiao-ble_*.uf2
+        file_glob: true
+        asset_name: "ht_xiao-ble_$tag.uf2"
+        repo_token: ${{ github.token }}
+
+    - name: Upload Nano 33 BLE binaries to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        tag: ${{ github.ref }}
+        file: ./build/ht_nano-33-ble_*.uf2
+        file_glob: true
+        asset_name: "ht_nano-33-ble_$tag.uf2"
+        repo_token: ${{ github.token }}
