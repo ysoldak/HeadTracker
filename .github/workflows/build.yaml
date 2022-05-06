@@ -14,6 +14,10 @@ jobs:
     container: tinygo/tinygo:0.23.0
     steps:
 
+    - name: Prepare
+      run: |
+        apt-get install -y make
+
     - name: Checkout
       uses: actions/checkout@v2
       with:
