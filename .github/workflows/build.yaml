@@ -16,7 +16,7 @@ jobs:
 
     - name: Prepare
       run: |
-        apt-get install -y make
+        apt-get install -y make git
 
     - name: Checkout
       uses: actions/checkout@v2
