@@ -1,0 +1,32 @@
+name: Build binary
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: tinygo/tinygo:0.23.0
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Switch dependencies
+      run: |
+        sed -i.bak "s,=>.*tinygo-drivers ,=> github.com/ysoldak/tinygo-drivers lsm6ds3tr ," go.mod
+        sed -i.bak "s,=>.*bluetooth ,=> github.com/ysoldak/bluetooth sd-gatts-sys-attr ," go.mod
+        go mod tidy
+
+    - name: Build XIAO BLE Sense binary
+      run: make -f Makefile.xiao-ble build
+
+    - name: Build Nano 33 BLE binary
+      run: make -f Makefile.nano-33-ble build

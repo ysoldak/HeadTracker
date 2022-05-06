@@ -10,11 +10,11 @@ import (
 
 const (
 	angleMax         = 45
-	PERIOD           = 20 * time.Millisecond
-	BLINK_MAIN_COUNT = int(500 * time.Millisecond / PERIOD)
-	BLINK_WARM_COUNT = int(200 * time.Millisecond / PERIOD)
-	BLINK_PARA_COUNT = int(200 * time.Millisecond / PERIOD)
-	TRACE_COUNT      = int(1000 * time.Millisecond / PERIOD)
+	PERIOD           = 20
+	BLINK_MAIN_COUNT = 500
+	BLINK_WARM_COUNT = 125
+	BLINK_PARA_COUNT = 250
+	TRACE_COUNT      = 1000
 )
 
 var (
@@ -27,52 +27,55 @@ func init() {
 
 	// Orientation
 	o = orientation.New()
-	o.Configure(PERIOD)
+	o.Configure(PERIOD * time.Millisecond)
 
 	// Bluetooth (FrSKY's PARA trainer protocol)
 	t = trainer.New()
 	t.Configure()
-	go t.Run(PERIOD)
+	go t.Run(PERIOD * time.Millisecond)
 
 	// Display
 	d = display.New()
-	d.Configure(t.Address)
-	go d.Run(5 * PERIOD)
+	d.Address = t.Address
+	d.Version = version
+	d.Configure()
+	go d.Run(5 * PERIOD * time.Millisecond)
 
 }
 
 func main() {
 
-	// warm up
-	for i := 0; i < 10; i++ {
+	// warm up IMU
+	for i := 0; i < 50; i++ {
 		o.Update(false)
-		time.Sleep(PERIOD)
+		time.Sleep(PERIOD * time.Millisecond)
 	}
+
 	// record initial orientation
 	o.Center()
-	// stabilize gyroscope
-	// for !o.Stable() {
-	// 	o.Update(false)
-	// 	d.Paired = t.Paired
-	// 	state(iter)
-	// 	time.Sleep(PERIOD)
-	// 	iter++
-	// }
+
+	// calibrate gyroscope
+	iter := 0
+	for !o.Stable() {
+
+		o.Update(false)
+		d.Paired = t.Paired
+		state(iter)
+
+		time.Sleep(time.Millisecond)
+		iter++
+	}
+	d.Stable = true
 
 	// main loop
-	iter := 0
+	iter = 0
 	for {
 
-		// update orientation
-		if !o.Stable() {
-			o.Update(false)
-		} else {
-			o.Update(true)
-			for i, v := range o.Angles() {
-				a := angleToChannel(v, 45)
-				t.Channels[i] = a
-				d.Channels[i] = a
-			}
+		o.Update(true)
+		for i, v := range o.Angles() {
+			a := angleToChannel(v, 45)
+			t.Channels[i] = a
+			d.Channels[i] = a
 		}
 		d.Paired = t.Paired
 
@@ -81,8 +84,8 @@ func main() {
 		trace(iter)
 
 		// wait
-		time.Sleep(PERIOD)
-		iter++
+		time.Sleep(PERIOD * time.Millisecond)
+		iter += PERIOD
 
 	}
 

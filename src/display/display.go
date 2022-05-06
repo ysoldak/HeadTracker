@@ -18,7 +18,9 @@ type Display struct {
 	blinkColor color.RGBA
 
 	Paired   bool
+	Stable   bool
 	Address  string
+	Version  string
 	Channels [3]uint16
 }
 
@@ -30,8 +32,7 @@ func New() *Display {
 	}
 }
 
-func (d *Display) Configure(address string) {
-	d.Address = address
+func (d *Display) Configure() {
 	machine.I2C0.Configure(machine.I2CConfig{
 		Frequency: machine.TWI_FREQ_400KHZ,
 		SDA:       machine.SDA0_PIN,
@@ -48,9 +49,18 @@ func (d *Display) Configure(address string) {
 
 func (d *Display) Run(period time.Duration) {
 	d.showAddress()
+	clearVersion := true
 	for {
-		for i := 0; i < 3; i++ {
-			d.showValue(i)
+		if d.Stable {
+			if clearVersion {
+				d.showVersion(BLACK)
+				clearVersion = false
+			}
+			for i := 0; i < 3; i++ {
+				d.showValue(i)
+			}
+		} else {
+			d.showVersion(WHITE)
 		}
 		d.showPaired()
 		d.device.Display()

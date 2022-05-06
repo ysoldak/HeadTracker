@@ -20,7 +20,7 @@ func New() *Orientation {
 
 func (o *Orientation) Configure(period time.Duration) {
 	o.imu.Configure()
-	o.fusion = ahrs.NewMadgwick(0.01, float64(time.Second/period))
+	o.fusion = ahrs.NewMadgwick(0.025, float64(time.Second/period))
 }
 
 // TODO implement initial orientation when support magnetometer
@@ -53,7 +53,7 @@ func (o *Orientation) Update(fusion bool) {
 }
 
 func (o *Orientation) Stable() bool {
-	return o.imu.gyrCal.stable
+	return o.imu.gyrCal.Stable
 }
 
 func (o *Orientation) InitialAngles() [3]float32 {
@@ -65,5 +65,5 @@ func (o *Orientation) Angles() [3]float32 {
 }
 
 func (o *Orientation) Offsets() (roll, pitch, yaw int32) {
-	return o.imu.gyrCal.offset[0], o.imu.gyrCal.offset[1], o.imu.gyrCal.offset[2]
+	return o.imu.gyrCal.Offset[0], o.imu.gyrCal.Offset[1], o.imu.gyrCal.Offset[2]
 }

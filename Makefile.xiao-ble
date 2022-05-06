@@ -1,0 +1,18 @@
+VERSION := $(shell git describe --tags)
+RELEASE := $(shell git describe --tags --abbr=0)
+
+.PHONY: clean version build flash
+
+clean:
+	@rm -rf build
+
+version:
+	@echo "package main" > src/version.go
+	@echo "const version = \"$(VERSION)\"" >> src/version.go
+
+build: version
+	@mkdir -p build
+	tinygo build -target=xiao-ble -size=full -opt=z -print-allocs=main -o ./build/ht_xiao-ble_$(VERSION).uf2 ./src
+
+flash:
+	tinygo flash -target=xiao-ble -size=full -opt=z -print-allocs=main ./src

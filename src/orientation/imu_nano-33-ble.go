@@ -1,5 +1,5 @@
-//go:build xiao_ble
-// +build xiao_ble
+//go:build nano_33_ble
+// +build nano_33_ble
 
 package orientation
 
@@ -7,11 +7,11 @@ import (
 	"machine"
 	"time"
 
-	"tinygo.org/x/drivers/lsm6ds3"
+	"tinygo.org/x/drivers/lsm9ds1"
 )
 
 type IMU struct {
-	device *lsm6ds3.Device
+	device *lsm9ds1.Device
 	gyrCal *GyrCal
 }
 
@@ -33,12 +33,14 @@ func (imu *IMU) Configure() {
 	time.Sleep(10 * time.Millisecond)
 
 	// Configure IMU
-	imu.device = lsm6ds3.New(machine.I2C1)
-	imu.device.Configure(lsm6ds3.Configuration{
-		AccelRange:      lsm6ds3.ACCEL_4G,
-		AccelSampleRate: lsm6ds3.ACCEL_SR_104,
-		GyroRange:       lsm6ds3.GYRO_250DPS,
-		GyroSampleRate:  lsm6ds3.GYRO_SR_104,
+	imu.device = lsm9ds1.New(machine.I2C1)
+	imu.device.Configure(lsm9ds1.Configuration{
+		AccelRange:      lsm9ds1.ACCEL_4G,
+		AccelSampleRate: lsm9ds1.ACCEL_SR_119,
+		GyroRange:       lsm9ds1.GYRO_250DPS,
+		GyroSampleRate:  lsm9ds1.GYRO_SR_119,
+		MagRange:        lsm9ds1.MAG_4G,
+		MagSampleRate:   lsm9ds1.MAG_SR_80,
 	})
 
 }
@@ -55,10 +57,10 @@ func (imu *IMU) Read() (gx, gy, gz, ax, ay, az float64, err error) {
 		return 0, 0, 0, 0, 0, 0, err
 	}
 
-	imu.gyrCal.apply(gxi, gyi, gzi)
-	gxi, gyi, gzi = imu.gyrCal.get(gxi, gyi, gzi)
+	imu.gyrCal.Apply(gxi, gyi, gzi)
+	gxi, gyi, gzi = imu.gyrCal.Get(gxi, gyi, gzi)
 
-	gx, gy, gz = float64(gxi)/1000000, float64(-gyi)/1000000, float64(-gzi)/1000000
+	gx, gy, gz = float64(-gxi)/1000000, float64(gyi)/1000000, float64(gzi)/1000000
 	ax, ay, az = float64(-axi)/1000000, float64(ayi)/1000000, float64(azi)/1000000
 	return
 }
