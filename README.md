@@ -26,7 +26,7 @@ This project switched to Go language ([TinyGo](https://tinygo.org) compiler) fro
 ## Connect to head tracker
 - Flash your board with a release file
 - Connect to the board with a **Serial console** and make note of the board **address** (like: `7b:f5:1e:35:de:94`)
-- SSD1306 LED display can be connected (via I2C) to the board; in such case board address displyed there too
+- [SSD1306 LED display](https://www.amazon.com/s?k=ssd1306+128x32+oled+i2c) can be connected (via I2C) to the board; in such case board address displyed there too
 - In your radio, select Trainer mode **"Master/BT"**, wait a bit and click "[Discover]"
 - Search for your board by address you noted earlier and **Connect** to it
 - **Blue led** on the board shall turn **on** indicating successful connection
