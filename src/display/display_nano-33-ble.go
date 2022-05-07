@@ -12,11 +12,11 @@ import (
 )
 
 func (d *Display) showAddress() {
-	tinyfont.WriteLineRotated(&d.device, &proggy.TinySZ8pt7b, 120, 0, d.Address, WHITE, tinyfont.ROTATION_180)
+	tinyfont.WriteLineRotated(&d.device, &proggy.TinySZ8pt7b, 114, 0, d.Address, WHITE, tinyfont.ROTATION_180)
 }
 
 func (d *Display) showVersion(color color.RGBA) {
-	tinyfont.WriteLineRotated(&d.device, &proggy.TinySZ8pt7b, 80, 18, d.Version, color, tinyfont.ROTATION_180)
+	tinyfont.WriteLineRotated(&d.device, &proggy.TinySZ8pt7b, 114, 18, d.Version, color, tinyfont.ROTATION_180)
 }
 
 func (d *Display) showValue(idx int) {
@@ -35,7 +35,7 @@ func (d *Display) showPaired() {
 		d.blinkCount--
 		return
 	}
-	tinyfont.WriteLineRotated(&d.device, &proggy.TinySZ8pt7b, 120, 0, "  :  :  :  :  :  ", d.blinkColor, tinyfont.ROTATION_180)
+	tinyfont.WriteLineRotated(&d.device, &proggy.TinySZ8pt7b, 114, 0, "  :  :  :  :  :  ", d.blinkColor, tinyfont.ROTATION_180)
 	if d.blinkColor == WHITE && !d.Paired {
 		d.blinkColor = BLACK
 	} else {

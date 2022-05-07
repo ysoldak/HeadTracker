@@ -16,7 +16,7 @@ func (d *Display) showAddress() {
 }
 
 func (d *Display) showVersion(color color.RGBA) {
-	tinyfont.WriteLineRotated(&d.device, &proggy.TinySZ8pt7b, 48, 12, d.Version, color, tinyfont.NO_ROTATION)
+	tinyfont.WriteLineRotated(&d.device, &proggy.TinySZ8pt7b, 14, 12, d.Version, color, tinyfont.NO_ROTATION)
 }
 
 func (d *Display) showValue(idx int) {
