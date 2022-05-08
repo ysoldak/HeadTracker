@@ -128,6 +128,6 @@ func trace(iter int) {
 	if iter%TRACE_COUNT == 0 { // print out state
 		r, p, y := t.Channels[0], t.Channels[1], t.Channels[2]
 		rc, pc, yc := o.Offsets()
-		println(time.Now().Unix(), ": ", t.Address, " [", r, ",", p, ",", y, "] (", rc, ",", pc, ",", yc, ")")
+		println(time.Now().Unix(), ": ", t.Address, " | ", version, " [", r, ",", p, ",", y, "] (", rc, ",", pc, ",", yc, ")")
 	}
 }
