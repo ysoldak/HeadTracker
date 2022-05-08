@@ -61,6 +61,7 @@ func main() {
 		o.Update(false)
 		d.Paired = t.Paired
 		state(iter)
+		trace(iter)
 
 		time.Sleep(time.Millisecond)
 		iter++
