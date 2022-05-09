@@ -46,17 +46,18 @@ Connect the board to your computer, double-tap on RST button and copy `ht_xiao-b
 
 ### Nano 33 BLE (Advanced)
 Use a debug probe to first flash nRF SoftDevice to the board, then `ht_nano-33-ble_xxx.hex`.
-This is advanced setup and requires experinece and tooling. Please use `Makefile.nano-33-ble` for reference.
+This is advanced setup and requires experinece and tooling. Please see `Makefile.nano-33-ble` for reference.
 
 ## Use head tracker
-Attach the board with flashed head tracker code to your FPV goggles, place them goggles at a solid surface and power the head tracker with 2 cell battery or 5v source. I use analog adaptor bay on my DJI goggles to source 5v. 
+Attach the board with flashed head tracker code to your FPV goggles.  
+Place your goggles on a solid surface and power the head tracker with 2 cell battery or 5v source. I use analog adaptor bay on my DJI goggles to source 5v. 
 
 On start, board shall blink continuously blue, red and green/orange leds.
-- Blue led indicates Bluetooth state and blinks while not connected; it switched to solid blue upon successful connection to your radio (see below);
-- Red led indicates initial gyroscope calibration, you shall wait until the red led is off before use. Usually it takes several seconds;
+- Blue led indicates Bluetooth state and blinks while not connected, it switches to solid blue upon successful connection to your radio (see below);
+- Red led indicates initial gyroscope calibration, you shall wait until the red led is off before use, normally no more than several seconds;
 - Green/orange led indicates health of the head tracker and shall slowly blink during normal operation.
 
-Head tracker remembers initial orientation on power up, place your goggles accordingly.
+The head tracker records initial orientation on power up, place your goggles accordingly.
 
 If you have a LED 128x32 screen added you your board (via I2C), the board's bluetooth address is displayed on it. Blinking ":" symbols indicate bluetooth connection status, like blue led. Upon start, while gyroscope is calibrating, you shall see head tracker version briefly on the screen. The version is then replaced by 3 horisonal bars, one for each axis: roll, pitch and yaw.
 
