@@ -45,7 +45,7 @@ func init() {
 
 func main() {
 
-	// warm up IMU
+	// warm up IMU (1 sec)
 	for i := 0; i < 50; i++ {
 		o.Update(false)
 		time.Sleep(PERIOD * time.Millisecond)
@@ -54,7 +54,7 @@ func main() {
 	// record initial orientation
 	o.Center()
 
-	// calibrate gyroscope
+	// calibrate gyroscope (until stable)
 	iter := 0
 	for !o.Stable() {
 
