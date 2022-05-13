@@ -36,9 +36,9 @@ func (imu *IMU) Configure() {
 	imu.device = lsm9ds1.New(machine.I2C1)
 	imu.device.Configure(lsm9ds1.Configuration{
 		AccelRange:      lsm9ds1.ACCEL_4G,
-		AccelSampleRate: lsm9ds1.ACCEL_SR_833,
+		AccelSampleRate: lsm9ds1.ACCEL_SR_952,
 		GyroRange:       lsm9ds1.GYRO_500DPS,
-		GyroSampleRate:  lsm9ds1.GYRO_SR_833,
+		GyroSampleRate:  lsm9ds1.GYRO_SR_952,
 		MagRange:        lsm9ds1.MAG_4G,
 		MagSampleRate:   lsm9ds1.MAG_SR_80,
 	})
