@@ -9,12 +9,13 @@ import (
 )
 
 const (
-	angleMax         = 45
 	PERIOD           = 20
 	BLINK_MAIN_COUNT = 500
 	BLINK_WARM_COUNT = 125
 	BLINK_PARA_COUNT = 250
 	TRACE_COUNT      = 1000
+
+	degToMs = 500.0 / 180
 )
 
 var (
@@ -74,7 +75,7 @@ func main() {
 
 		o.Update(true)
 		for i, v := range o.Angles() {
-			a := angleToChannel(v, 45)
+			a := angleToChannel(v)
 			t.Channels[i] = a
 			d.Channels[i] = a
 		}
@@ -94,8 +95,8 @@ func main() {
 
 // --- Utils -------------------------------------------------------------------
 
-func angleToChannel(angle float32, max float32) uint16 {
-	result := uint16(1500 + 500/max*angle)
+func angleToChannel(angle float32) uint16 {
+	result := uint16(1500 + degToMs*angle)
 	if result < 988 {
 		return 988
 	}
