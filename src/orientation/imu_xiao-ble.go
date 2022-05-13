@@ -37,7 +37,7 @@ func (imu *IMU) Configure() {
 	imu.device.Configure(lsm6ds3tr.Configuration{
 		AccelRange:      lsm6ds3tr.ACCEL_4G,
 		AccelSampleRate: lsm6ds3tr.ACCEL_SR_833,
-		GyroRange:       lsm6ds3tr.GYRO_125DPS,
+		GyroRange:       lsm6ds3tr.GYRO_500DPS,
 		GyroSampleRate:  lsm6ds3tr.GYRO_SR_833,
 	})
 
