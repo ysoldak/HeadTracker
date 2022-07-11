@@ -2,7 +2,7 @@ module github.com/ysoldak/HeadTracker
 
 go 1.17
 
-require tinygo.org/x/bluetooth v0.3.0
+require tinygo.org/x/bluetooth v0.5.0
 
 require tinygo.org/x/drivers v0.21.0
 
@@ -23,4 +23,4 @@ require (
 	golang.org/x/sys v0.0.0-20210423082822-04245dca01da // indirect
 )
 
-replace tinygo.org/x/bluetooth => ../bluetooth // github.com/ysoldak/bluetooth@sd-gatts-sys-attr
+replace tinygo.org/x/bluetooth => ../bluetooth // github.com/ysoldak/bluetooth sd-gatts-sys-attr

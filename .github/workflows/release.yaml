@@ -21,8 +21,7 @@ jobs:
 
     - name: Switch dependencies
       run: |
-        sed -i.bak "s,=>.*tinygo-drivers,=> github.com/ysoldak/tinygo-drivers lsm6ds3tr ," go.mod
-        sed -i.bak "s,=>.*bluetooth,=> github.com/ysoldak/bluetooth sd-gatts-sys-attr ," go.mod
+        sed -i.bak "s,=>.*\.\./bluetooth,=> github.com/ysoldak/bluetooth sd-gatts-sys-attr ," go.mod
         go mod tidy
 
     - name: Build XIAO BLE Sense binary
