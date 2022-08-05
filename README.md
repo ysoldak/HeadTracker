@@ -1,6 +1,6 @@
 # Zero configuration auto-calibrating wireless DIY head tracker
 
-Head Tracker runs on [Arduino Nano 33 BLE](https://store.arduino.cc/arduino-nano-33-ble) and [Seeeduino XIAO BLE Sense](https://www.seeedstudio.com/Seeed-XIAO-BLE-Sense-nRF52840-p-5253.html) boards and connects wirelessly via Bluetooth to [OpenTX](https://github.com/opentx/opentx) radios.
+Head Tracker runs on [Arduino Nano 33 BLE](https://store.arduino.cc/arduino-nano-33-ble) and [Seeeduino XIAO BLE Sense](https://www.seeedstudio.com/Seeed-XIAO-BLE-Sense-nRF52840-p-5253.html) boards and connects wirelessly via Bluetooth to [OpenTX](https://github.com/opentx/opentx) and [ETHOS](https://ethos.frsky-rc.com) radios.
 
 Listed boards are perfect for a head tracker project, since they have both **IMU** for orientation and **Bluetooth** for connectivity.
 
@@ -45,8 +45,8 @@ You have another nRF52840-based board with IMU and want to use it? File a featur
 Connect the board to your computer, double-tap on RST button and copy `ht_xiao-ble_xxx.uf2` file to XIAO-SENSE usb drive.
 
 ### Nano 33 BLE (Advanced)
-Use a debug probe to first flash nRF SoftDevice to the board, then `ht_nano-33-ble_xxx.hex`.
-This is advanced setup and requires experinece and tooling. Please see `Makefile.nano-33-ble` for reference.
+First, you shall [flash UF2 bootloader to the board](./doc/Nano33BLE.md). You only need to do this once for each new board.
+Then connect the board to your computer, double-tap on button and copy `ht_nano-33-ble_xxx.uf2` file to NANO33BOOT usb drive.
 
 ## Use head tracker
 Attach the board with flashed head tracker code to your FPV goggles.  
