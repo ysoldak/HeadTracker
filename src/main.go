@@ -1,6 +1,7 @@
 package main
 
 import (
+	"machine"
 	"time"
 
 	"github.com/ysoldak/HeadTracker/src/display"
@@ -17,6 +18,8 @@ const (
 
 	degToMs = 500.0 / 180
 )
+
+var buttonCenter = machine.D2
 
 var (
 	d *display.Display
@@ -46,6 +49,8 @@ func init() {
 
 func main() {
 
+	buttonCenter.Configure(machine.PinConfig{Mode: machine.PinInputPullup})
+
 	// warm up IMU (1 sec)
 	for i := 0; i < 50; i++ {
 		o.Update(false)
@@ -72,6 +77,11 @@ func main() {
 	// main loop
 	iter = 0
 	for {
+
+		if !buttonCenter.Get() {
+			o.Center()
+			continue
+		}
 
 		o.Update(true)
 		for i, v := range o.Angles() {
