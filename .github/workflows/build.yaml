@@ -11,7 +11,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: tinygo/tinygo:0.23.0
+    container: tinygo/tinygo-dev:latest
     steps:
 
     - name: Prepare
@@ -29,7 +29,7 @@ jobs:
         go mod tidy
 
     - name: Build XIAO BLE Sense binary
-      run: make -f Makefile.xiao-ble build
+      run: make TARGET=xiao-ble build
 
     - name: Build Nano 33 BLE binary
-      run: make -f Makefile.nano-33-ble build
+      run: make TARGET=nano-33-ble-s140v6-uf2 build
