@@ -21,9 +21,12 @@ const (
 
 var buttonCenter = machine.D2
 
+var trainerBT = machine.D8
+
 var (
 	d *display.Display
 	t *trainer.Trainer
+	p *trainer.PPM
 	o *orientation.Orientation
 )
 
@@ -33,10 +36,20 @@ func init() {
 	o = orientation.New()
 	o.Configure(PERIOD * time.Millisecond)
 
-	// Bluetooth (FrSKY's PARA trainer protocol)
-	t = trainer.New()
-	t.Configure()
-	go t.Run(PERIOD * time.Millisecond)
+	t = trainer.New()    // Bluetooth (FrSKY's PARA trainer protocol)
+	p = trainer.NewPPM() // PPM wire
+
+	trainerBT.Configure(machine.PinConfig{Mode: machine.PinInputPullup})
+
+	if trainerBT.Get() {
+		t.Configure()
+		go t.Run(PERIOD * time.Millisecond)
+	} else {
+		p.Configure()
+		p.Run()
+		t.Address = "PP:M :BA:BE: P:PM"
+		t.Paired = true
+	}
 
 	// Display
 	d = display.New()
@@ -87,6 +100,7 @@ func main() {
 		for i, v := range o.Angles() {
 			a := angleToChannel(v)
 			t.Channels[i] = a
+			p.Channels[i] = a
 			d.Channels[i] = a
 		}
 		d.Paired = t.Paired
