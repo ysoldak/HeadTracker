@@ -36,10 +36,10 @@ func init() {
 	o.Configure(PERIOD * time.Millisecond)
 
 	// Trainer (Bluetooth or PPM)
-	if !pinOutputPPM.Get() { // Low means connected to GND => PPM output requested
-		t = trainer.NewPPM() // PPM wire
+	if !pinSelectPPM.Get() { // Low means connected to GND => PPM output requested
+		t = trainer.NewPPM(pinOutputPPM) // PPM wire
 	} else {
-		t = trainer.NewPara() // Bluetooth (FrSKY's PARA trainer protocol)
+		t = trainer.NewPara()
 	}
 	t.Configure()
 	go t.Run()
@@ -48,7 +48,7 @@ func init() {
 	d = display.New()
 	d.Address = t.Address()
 	d.Version = Version
-	d.Bluetooth = pinOutputPPM.Get() // High means Bluetooth
+	d.Bluetooth = pinSelectPPM.Get() // High means Bluetooth
 
 	d.Configure()
 	go d.Run()

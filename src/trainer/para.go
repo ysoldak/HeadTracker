@@ -3,6 +3,8 @@
 
 package trainer
 
+// Bluetooth (FrSKY's PARA trainer protocol) link
+
 import (
 	"time"
 
