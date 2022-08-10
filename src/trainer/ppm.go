@@ -1,14 +1,11 @@
 package trainer
 
+// PPM (Pulse-position modulation) wired trainer link
+
 import (
 	"device/arm"
 	"machine"
 )
-
-// --- Confgurable ------------------------------------------------------------
-var ppmPin = machine.D10
-
-// --- Implementation ---------------------------------------------------------
 
 var ppmFrameLen uint32 = 22500 * sysCyclesPerMicrosecond
 var ppmOffLen uint32 = 300 * sysCyclesPerMicrosecond
@@ -18,12 +15,14 @@ var sysCyclesPerMicrosecond = machine.CPUFrequency() / 1_000_000
 var ppmInstance PPM
 
 type PPM struct {
+	pin      machine.Pin
 	curChan  int8
 	channels [8]uint16
 }
 
-func NewPPM() *PPM {
+func NewPPM(pin machine.Pin) *PPM {
 	ppmInstance = PPM{
+		pin:      pin,
 		curChan:  -1,
 		channels: [8]uint16{1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500},
 	}
@@ -31,8 +30,7 @@ func NewPPM() *PPM {
 }
 
 func (ppm *PPM) Configure() {
-	ppmPin.Configure(machine.PinConfig{Mode: machine.PinOutput})
-	ppmPin.Low()
+	ppm.pin.Low()
 }
 
 func (ppm *PPM) Run() {
@@ -60,8 +58,8 @@ func (ppm *PPM) SetChannel(n int, v uint16) {
 //export SysTick_Handler
 func timer_isr() {
 	// separator
-	if ppmPin.Get() {
-		ppmPin.Low()
+	if ppmInstance.pin.Get() {
+		ppmInstance.pin.Low()
 		ppmInstance.curChan++
 		if ppmInstance.curChan > 7 {
 			ppmInstance.curChan = -1
@@ -71,12 +69,12 @@ func timer_isr() {
 	}
 	// regular channel
 	if ppmInstance.curChan != -1 {
-		ppmPin.High()
+		ppmInstance.pin.High()
 		arm.SetupSystemTimer(uint32(ppmInstance.channels[ppmInstance.curChan])*sysCyclesPerMicrosecond - ppmOffLen)
 		return
 	}
 	// padding
-	ppmPin.High()
+	ppmInstance.pin.High()
 	sum := uint16(0)
 	for _, value := range ppmInstance.channels {
 		sum += value
