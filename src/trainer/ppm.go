@@ -19,13 +19,13 @@ var ppmInstance PPM
 
 type PPM struct {
 	curChan  int8
-	Channels [8]uint16
+	channels [8]uint16
 }
 
 func NewPPM() *PPM {
 	ppmInstance = PPM{
 		curChan:  -1,
-		Channels: [8]uint16{1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500},
+		channels: [8]uint16{1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500},
 	}
 	return &ppmInstance
 }
@@ -37,6 +37,22 @@ func (ppm *PPM) Configure() {
 
 func (ppm *PPM) Run() {
 	arm.SetupSystemTimer(sysCyclesPerMicrosecond)
+}
+
+func (ppm *PPM) Paired() bool {
+	return true
+}
+
+func (ppm *PPM) Address() string {
+	return "    PPM OUTPUT"
+}
+
+func (ppm *PPM) Channels() [8]uint16 {
+	return ppm.channels
+}
+
+func (ppm *PPM) SetChannel(n int, v uint16) {
+	ppm.channels[n] = v
 }
 
 // --- Interrupt Handler ------------------------------------------------------
@@ -56,13 +72,13 @@ func timer_isr() {
 	// regular channel
 	if ppmInstance.curChan != -1 {
 		ppmPin.High()
-		arm.SetupSystemTimer(uint32(ppmInstance.Channels[ppmInstance.curChan])*sysCyclesPerMicrosecond - ppmOffLen)
+		arm.SetupSystemTimer(uint32(ppmInstance.channels[ppmInstance.curChan])*sysCyclesPerMicrosecond - ppmOffLen)
 		return
 	}
 	// padding
 	ppmPin.High()
 	sum := uint16(0)
-	for _, value := range ppmInstance.Channels {
+	for _, value := range ppmInstance.channels {
 		sum += value
 	}
 	arm.SetupSystemTimer(ppmFrameLen - uint32(sum)*sysCyclesPerMicrosecond - 8*ppmOffLen)

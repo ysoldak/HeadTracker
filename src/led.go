@@ -9,7 +9,7 @@ const (
 	ledB = machine.LED_BLUE
 )
 
-func init() {
+func initLeds() {
 	led.Configure(machine.PinConfig{Mode: machine.PinOutput})
 	ledR.Configure(machine.PinConfig{Mode: machine.PinOutput})
 	ledG.Configure(machine.PinConfig{Mode: machine.PinOutput})
