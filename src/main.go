@@ -8,6 +8,8 @@ import (
 	"github.com/ysoldak/HeadTracker/src/trainer"
 )
 
+var Version string
+
 const (
 	PERIOD           = 20
 	BLINK_MAIN_COUNT = 500
@@ -45,7 +47,7 @@ func init() {
 	// Display
 	d = display.New()
 	d.Address = t.Address()
-	d.Version = version
+	d.Version = Version
 	d.Bluetooth = pinOutputPPM.Get() // High means Bluetooth
 
 	d.Configure()
@@ -144,6 +146,6 @@ func trace(iter int) {
 	if iter%TRACE_COUNT == 0 { // print out state
 		r, p, y := t.Channels()[0], t.Channels()[1], t.Channels()[2]
 		rc, pc, yc := o.Offsets()
-		println(time.Now().Unix(), ": ", t.Address(), " | ", version, " [", r, ",", p, ",", y, "] (", rc, ",", pc, ",", yc, ")")
+		println(time.Now().Unix(), ": ", t.Address(), " | ", Version, " [", r, ",", p, ",", y, "] (", rc, ",", pc, ",", yc, ")")
 	}
 }
