@@ -14,6 +14,7 @@ var WHITE = color.RGBA{255, 255, 255, 255}
 type Display struct {
 	device ssd1306.Device
 
+	Bluetooth  bool
 	blinkCount int
 	blinkColor color.RGBA
 
@@ -47,7 +48,7 @@ func (d *Display) Configure() {
 	d.device.ClearDisplay()
 }
 
-func (d *Display) Run(period time.Duration) {
+func (d *Display) Run() {
 	d.showAddress()
 	clearVersion := true
 	for {
@@ -62,8 +63,10 @@ func (d *Display) Run(period time.Duration) {
 		} else {
 			d.showVersion(WHITE)
 		}
-		d.showPaired()
+		if d.Bluetooth {
+			d.showPaired()
+		}
 		d.device.Display()
-		time.Sleep(period)
+		time.Sleep(100 * time.Millisecond)
 	}
 }

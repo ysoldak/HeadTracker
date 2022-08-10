@@ -1,7 +1,6 @@
 package main
 
 import (
-	"machine"
 	"time"
 
 	"github.com/ysoldak/HeadTracker/src/display"
@@ -19,50 +18,42 @@ const (
 	degToMs = 500.0 / 180
 )
 
-var buttonCenter = machine.D2
-
-var trainerBT = machine.D8
-
 var (
 	d *display.Display
-	t *trainer.Trainer
-	p *trainer.PPM
+	t trainer.Trainer
 	o *orientation.Orientation
 )
 
 func init() {
 
+	initLeds()
+	initPins()
+
 	// Orientation
 	o = orientation.New()
 	o.Configure(PERIOD * time.Millisecond)
 
-	t = trainer.New()    // Bluetooth (FrSKY's PARA trainer protocol)
-	p = trainer.NewPPM() // PPM wire
-
-	trainerBT.Configure(machine.PinConfig{Mode: machine.PinInputPullup})
-
-	if trainerBT.Get() {
-		t.Configure()
-		go t.Run(PERIOD * time.Millisecond)
+	// Trainer (Bluetooth or PPM)
+	if !pinOutputPPM.Get() { // Low means connected to GND => PPM output requested
+		t = trainer.NewPPM() // PPM wire
 	} else {
-		p.Configure()
-		p.Run()
-		t.Address = "PP:M :BA:BE: P:PM"
-		t.Paired = true
+		t = trainer.NewPara() // Bluetooth (FrSKY's PARA trainer protocol)
 	}
+	t.Configure()
+	go t.Run()
 
 	// Display
 	d = display.New()
-	d.Address = t.Address
+	d.Address = t.Address()
 	d.Version = version
+	d.Bluetooth = pinOutputPPM.Get() // High means Bluetooth
+
 	d.Configure()
-	go d.Run(5 * PERIOD * time.Millisecond)
+	go d.Run()
 
 }
 
 func main() {
-
-	buttonCenter.Configure(machine.PinConfig{Mode: machine.PinInputPullup})
 
 	// warm up IMU (1 sec)
 	for i := 0; i < 50; i++ {
@@ -78,7 +69,7 @@ func main() {
 	for !o.Stable() {
 
 		o.Update(false)
-		d.Paired = t.Paired
+		d.Paired = t.Paired()
 		state(iter)
 		trace(iter)
 
@@ -91,7 +82,7 @@ func main() {
 	iter = 0
 	for {
 
-		if !buttonCenter.Get() {
+		if !pinResetCenter.Get() { // Low means button pressed => shall reset center
 			o.Center()
 			continue
 		}
@@ -99,11 +90,10 @@ func main() {
 		o.Update(true)
 		for i, v := range o.Angles() {
 			a := angleToChannel(v)
-			t.Channels[i] = a
-			p.Channels[i] = a
+			t.SetChannel(i, a)
 			d.Channels[i] = a
 		}
-		d.Paired = t.Paired
+		d.Paired = t.Paired()
 
 		// blink and trace
 		state(iter)
@@ -142,7 +132,7 @@ func state(iter int) {
 		}
 	}
 	if iter%BLINK_PARA_COUNT == 0 { // indicate para (bluetooth) state
-		if t.Paired {
+		if t.Paired() {
 			on(ledB) // on, connected
 		} else {
 			toggle(ledB) // blink, advertising
@@ -152,8 +142,8 @@ func state(iter int) {
 
 func trace(iter int) {
 	if iter%TRACE_COUNT == 0 { // print out state
-		r, p, y := t.Channels[0], t.Channels[1], t.Channels[2]
+		r, p, y := t.Channels()[0], t.Channels()[1], t.Channels()[2]
 		rc, pc, yc := o.Offsets()
-		println(time.Now().Unix(), ": ", t.Address, " | ", version, " [", r, ",", p, ",", y, "] (", rc, ",", pc, ",", yc, ")")
+		println(time.Now().Unix(), ": ", t.Address(), " | ", version, " [", r, ",", p, ",", y, "] (", rc, ",", pc, ",", yc, ")")
 	}
 }
