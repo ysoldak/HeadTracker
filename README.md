@@ -1,10 +1,9 @@
 # Zero configuration auto-calibrating wireless DIY head tracker
 
-Head Tracker runs on [Arduino Nano 33 BLE](https://store.arduino.cc/arduino-nano-33-ble) and [Seeeduino XIAO BLE Sense](https://www.seeedstudio.com/Seeed-XIAO-BLE-Sense-nRF52840-p-5253.html) boards and connects to [OpenTX](https://github.com/opentx/opentx) and [ETHOS](https://ethos.frsky-rc.com) radios. Both wired (PPM) and wireless (Bluetooth) trainer connection modes are supported.
+Head Tracker runs on [Arduino Nano 33 BLE](https://store.arduino.cc/arduino-nano-33-ble) and [Seeeduino XIAO BLE Sense](https://www.seeedstudio.com/Seeed-XIAO-BLE-Sense-nRF52840-p-5253.html) boards and connects to [OpenTX](https://github.com/opentx/opentx) and [ETHOS](https://ethos.frsky-rc.com) radios.  
+Both wired (PPM) and wireless (Bluetooth) trainer connection modes are supported.
 
-Listed boards are perfect for a head tracker project, since they have both **IMU** for orientation and **Bluetooth** for connectivity.
-
-This project switched to Go language ([TinyGo](https://tinygo.org) compiler) from classic Arduino C/C++ that had been archived in [arduino](https://github.com/ysoldak/HeadTracker/tree/arduino) branch.
+_This project switched to Go language ([TinyGo](https://tinygo.org) compiler) from classic Arduino C/C++ that had been archived in [arduino](https://github.com/ysoldak/HeadTracker/tree/arduino) branch._
 
 <table>
 <tr><td>
@@ -30,6 +29,8 @@ This project switched to Go language ([TinyGo](https://tinygo.org) compiler) fro
 - **SDA&SCL**: I2C communication pins, connect them to 128x32 SSD1306 screen
 
 ## Supported boards
+
+Listed boards are perfect for a head tracker project, since they have both **IMU** for orientation and **Bluetooth** for connectivity.
 
 **XIAO BLE Sense** is a tiny board with UF2 bootloader and SoftDevice (bluetooth driver) pre-flashed that makes it very easy to use.
 The board is relatively new and may be harder to find. Please pay attention and order "Sense" variant, it has IMU.  
@@ -72,9 +73,9 @@ Optionally, a **reset orientation** button can be wired to **D2** and **GND** pi
 If you have a LED 128x32 screen added you your board (via I2C), the board's bluetooth address is displayed on it. Blinking ":" symbols indicate bluetooth connection status, like blue led. Upon start, while gyroscope is calibrating, you shall see head tracker version briefly on the screen. The version is then replaced by 3 horisonal bars, one for each axis: roll, pitch and yaw.
 
 
-## Connection
+## Connect to radio
 
-HeadTracker can work either in wireless (bluetooth) or wired (PPM) mode.
+HeadTracker can work either in wireless (Bluetooth) or wired (PPM) mode.  
 Bluetooth mode is active by default.
 
 ### Bluetooth
@@ -94,6 +95,6 @@ Bluetooth mode is active by default.
 - [DIY-Head-Tracker](https://github.com/kniuk/DIY-Head-Tracker)  
   Original DIY head tracker for Arduino Nano with separate IMU board and PPM over cable
 - [RC HeadTracker by Cliff](https://github.com/dlktdr/HeadTracker)  
-  Another, more advanced version of head tracker, also based on Arduino Nano 33 BLE board.
+  Another version of head tracker, based on Arduino Nano 33 BLE board.
 - [Bluetooth Smart/BLE Crash Course](https://inductive-kickback.com/projects/bluetooth-low-energy/bluetooth-smartble-crash-course/)
 - [Bluetooth low energy Characteristics, a beginner's tutorial](https://devzone.nordicsemi.com/nordic/short-range-guides/b/bluetooth-low-energy/posts/ble-characteristics-a-beginners-tutorial)
