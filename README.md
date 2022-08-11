@@ -23,18 +23,24 @@ This project switched to Go language ([TinyGo](https://tinygo.org) compiler) fro
 - FrSky X-Lite Pro (OpenTX)
 - FrSky X20S Tandem (EthOS)
 
+## Pin wiring reference
+- **D2**: Orientation reset pin, use button that connects this pin to **GND**
+- **D8**: PPM mode activation pin, solder permanently or use positional switch to connect this pin to **GND**
+- **D10**: PPM signal pin, connect to audio jack tip and **GND** to jack body
+- **SDA&SCL**: I2C communication pins, connect them to 128x32 SSD1306 screen
+
 ## Supported boards
 
 **XIAO BLE Sense** is a tiny board with UF2 bootloader and SoftDevice (bluetooth driver) pre-flashed that makes it very easy to use.
 The board is relatively new and may be harder to find. Please pay attention and order "Sense" variant, it has IMU.  
 _Recommended for users w/o experience in embedded programming._
 
-**Nano 33 BLE** is a larger board from Arduino that shall be easier to source. There are two variants of this board: "Nano 33 BLE" and "Nano 33 BLE Sense" -- both will work for this project. This board has no UF2 bootloader and a debug probe is required to flash bluetooth driver and head tracker binary to it.  
-_Recommended for advanced users who have debug probe (JLink or CMSIS-DAP compatible) and can use it._
+**Nano 33 BLE** is a larger board from Arduino that shall be easier to source. There are two variants of this board: "Nano 33 BLE" and "Nano 33 BLE Sense" -- both will work for this project. This board has no UF2 bootloader pre-flashed and a debug probe is required to flash UF2 bootloader to it.  
+_Recommended for advanced users who have a debug probe (JLink or CMSIS-DAP compatible) and can use it._
 
 For a long time, Nano 33 BLE was the only board supported. It has an additional sensor, magnetometer, that head trackers usually use to eliminate yaw drift. In practice, however, magnetometer adds more problems than solves. Magnetometer is very sensitive to environment and tricky to calibrate properly. In this project we do not use magnetometer and have a good zero-configuration automatic continuous gyro calibration instead to solve the drift problem. Already after first 5 seconds the calibration is good enough to stop the drift.  
 
-As of now, Nano 33 BLE board does not provide any benefit over XIAO BLE Sense. Instead, the later board is actually easier to use, thanks to UF2 bootloader. In the future, just for fun, magnetometer support can be added but only if we can make calibration automatic and transparent for the user. Then it may make sense to use Nano 33 BLE or some other board with magnetometer.
+As of now, Nano 33 BLE board does not provide any benefit over XIAO BLE Sense. Instead, the later board is actually easier to use, thanks to pre-flashed UF2 bootloader and smaller size. In the future, just for fun, magnetometer support can be added but only if we can make calibration automatic and transparent for the user.
 
 You have another nRF52840-based board with IMU and want to use it? File a feature request. Better yet, make a PR directly!
 
@@ -52,20 +58,26 @@ Then connect the board to your computer, double-tap on button and copy `ht_nano-
 Attach the board with flashed head tracker code to your FPV goggles.  
 Place your goggles on a solid surface and power the head tracker with 2 cell battery or 5v source. I use analog adaptor bay on my DJI goggles to source 5v. 
 
+### LEDs
 On start, board shall blink continuously blue, red and green/orange leds.
 - Blue led indicates Bluetooth state and blinks while not connected, it switches to solid blue upon successful connection to your radio (see below);
 - Red led indicates initial gyroscope calibration, you shall wait until the red led is off before use, normally no more than several seconds;
 - Green/orange led indicates health of the head tracker and shall slowly blink during normal operation.
 
-The head tracker records initial orientation on power up, place your goggles accordingly.
+### Buttons
+The head tracker records initial orientation on power up, place your goggles accordingly.  
+Optionally, a **reset orientation** button can be wired to **D2** and **GND** pins.
 
+### Screen
 If you have a LED 128x32 screen added you your board (via I2C), the board's bluetooth address is displayed on it. Blinking ":" symbols indicate bluetooth connection status, like blue led. Upon start, while gyroscope is calibrating, you shall see head tracker version briefly on the screen. The version is then replaced by 3 horisonal bars, one for each axis: roll, pitch and yaw.
 
-## Add screen
 
-TODO
+## Connection
 
-## Connect to head tracker
+HeadTracker can work either in wireless (bluetooth) or wired (PPM) mode.
+Bluetooth mode is active by default.
+
+### Bluetooth
 - Flash your board with a release file
 - Connect to the board with a **Serial console** and make note of the board **address** (like: `7b:f5:1e:35:de:94`)
 - [SSD1306 LED display](https://www.amazon.com/s?k=ssd1306+128x32+oled+i2c) can be connected (via I2C) to the board; in such case board address displyed there too
@@ -74,6 +86,9 @@ TODO
 - **Blue led** on the board shall turn **on** indicating successful connection
 - Do not forget to configure **Trainer function** in your radio either on "Special Functions" screen of your model or on "Global Functions" of your radio setup.
 
+### Wire
+- Activate PPM trainer output by connecting **D8** and **GND** pins.
+- Collect PPM signal from **D10** pin. (Audio jack tip shall be connected to **D10** and rest to **GND**)
 
 ## Related links
 - [DIY-Head-Tracker](https://github.com/kniuk/DIY-Head-Tracker)  
