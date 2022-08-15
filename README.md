@@ -7,14 +7,14 @@ _This project switched to Go language ([TinyGo](https://tinygo.org) compiler) fr
 
 <table>
 <tr><td>
-<img src="case/DJICaseClosed.jpg" title="XIAO + SSD1306 on DJI Goggles" style="float: left;"/>
+<img src="case/XiaoBle1Closed.jpg" title="XIAO + SSD1306 128x32 on DJI Goggles" style="float: left;"/>
 </td><td>
-<img src="case/DJICaseOpen.jpg" title="XIAO + SSD1306 on DJI Goggles, wiring" style="float: right;"/>
+<img src="case/XiaoBle1Open.jpg" title="XIAO + SSD1306 128x32 on DJI Goggles, wiring" style="float: right;"/>
 </td></tr>
 <tr><td>
-<img src="case/CaseOnGoggles.jpg" title="Nano 33 BLE on FatShark mounted on the left side" style="float: left;"/>
+<img src="case/Nano33BleOnGoggles.jpg" title="Nano 33 BLE on FatShark mounted on the left side" style="float: left;"/>
 </td><td>
-<img src="case/CaseOpen.jpg" title="Nano 33 BLE on FatShark, wiring" style="float: right;"/>
+<img src="case/Nano33BleOpen.jpg" title="Nano 33 BLE on FatShark, wiring" style="float: right;"/>
 </td></tr>
 </table>
 
