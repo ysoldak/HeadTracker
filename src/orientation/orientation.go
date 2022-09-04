@@ -1,20 +1,27 @@
 package orientation
 
 import (
+	"math"
 	"time"
 
+	mgl "github.com/go-gl/mathgl/mgl64"
 	"github.com/tracktum/go-ahrs"
 )
 
+const radToDeg = 180 / math.Pi // 57.29578
+const degToRad = 1 / radToDeg  // 0.0174533
+
 type Orientation struct {
-	imu    *IMU
-	fusion ahrs.Madgwick
-	angles [2][3]float32 // initial and current, 3 of each
+	imu     *IMU
+	fusion  ahrs.Madgwick
+	offset  mgl.Quat
+	current mgl.Quat
 }
 
 func New() *Orientation {
 	return &Orientation{
-		imu: NewIMU(),
+		imu:    NewIMU(),
+		offset: mgl.QuatIdent(),
 	}
 }
 
@@ -23,45 +30,61 @@ func (o *Orientation) Configure(period time.Duration) {
 	o.fusion = ahrs.NewMadgwick(0.025, float64(time.Second/period))
 }
 
-// TODO implement initial orientation when support magnetometer
-// Init orientation (calculates and stores initial angles)
-func (o *Orientation) Center() {
-	_, _, _, ax, ay, az, _ := o.imu.Read()
-	q := orientationToQuaternion(ax, ay, az, 1, 0, 0) // assume N since we don't have mag
-	o.angles[0][0], o.angles[0][1], o.angles[0][2] = quaternionToAngles(q)
-	o.fusion.Quaternions = q
+// Reset orientation for sensor fusion algoritm
+// - aligns current gravitation vector with Z axis
+// - resets fusion quaternion
+func (o *Orientation) Reset() {
+	_, _, _, ax, ay, az, err := o.imu.Read()
+	if err != nil {
+		println(err.Error())
+		return
+	}
+	start := mgl.Vec3{ax, ay, az}
+	dest := mgl.Vec3{0, 0, 1}
+	o.offset = mgl.QuatBetweenVectors(start, dest)
+	o.fusion.Quaternions = [4]float64{1, 0, 0, 0}
+}
+
+// Calibrate gyroscope
+func (o *Orientation) Calibrate() {
+	_, _, _, _, _, _, err := o.imu.Read()
+	if err != nil {
+		println(err.Error())
+	}
 }
 
 // Update orientation
-// TODO support magnetometer
-func (o *Orientation) Update(fusion bool) {
+func (o *Orientation) Update() {
+	// read raw data
 	gx, gy, gz, ax, ay, az, err := o.imu.Read()
 	if err != nil {
 		println(err.Error())
 		return
 	}
-	if fusion {
-		q := o.fusion.Update6D(
-			gx*degToRad, gy*degToRad, gz*degToRad,
-			ax, ay, az,
-		)
-		o.angles[1][0], o.angles[1][1], o.angles[1][2] = quaternionToAngles(q)
-		o.angles[1][0] -= o.angles[0][0]
-		o.angles[1][1] -= o.angles[0][1]
-		o.angles[1][2] -= o.angles[0][2]
-	}
+	// rotate raw vectors to original offset
+	a := o.offset.Rotate(mgl.Vec3{ax, ay, az})
+	g := o.offset.Rotate(mgl.Vec3{gx, gy, gz})
+	// apply fusion
+	q := o.fusion.Update6D(
+		g[0]*degToRad, g[1]*degToRad, g[2]*degToRad,
+		a[0], a[1], a[2],
+	)
+	o.current.W = q[0]
+	o.current.V = mgl.Vec3{q[1], q[2], q[3]}
 }
 
+// Stable state indicates gyroscope calibration is good
 func (o *Orientation) Stable() bool {
 	return o.imu.gyrCal.Stable
 }
 
-func (o *Orientation) InitialAngles() [3]float32 {
-	return o.angles[0]
-}
-
-func (o *Orientation) Angles() [3]float32 {
-	return o.angles[1]
+// Angles in radians
+func (o *Orientation) Angles() (angles [3]float64) {
+	q := o.current
+	angles[0] = math.Atan2(2*(q.W*q.V.X()+q.V.Y()*q.V.Z()), 1-2*(q.V.X()*q.V.X()+q.V.Y()*q.V.Y()))
+	angles[1] = math.Asin(2 * (q.W*q.V.Y() - q.V.X()*q.V.Z()))
+	angles[2] = math.Atan2(2*(q.V.X()*q.V.Y()+q.W*q.V.Z()), 1-2*(q.V.Y()*q.V.Y()+q.V.Z()*q.V.Z()))
+	return
 }
 
 func (o *Orientation) Offsets() (roll, pitch, yaw int32) {
