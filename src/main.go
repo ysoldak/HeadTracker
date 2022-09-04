@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math"
 	"time"
 
 	"github.com/ysoldak/HeadTracker/src/display"
@@ -17,7 +18,7 @@ const (
 	BLINK_PARA_COUNT = 250
 	TRACE_COUNT      = 1000
 
-	degToMs = 500.0 / 180
+	radToMs = 500.0 / math.Pi
 )
 
 var (
@@ -59,22 +60,20 @@ func main() {
 
 	// warm up IMU (1 sec)
 	for i := 0; i < 50; i++ {
-		o.Update(false)
+		o.Calibrate()
 		time.Sleep(PERIOD * time.Millisecond)
 	}
 
 	// record initial orientation
-	o.Center()
+	o.Reset()
 
 	// calibrate gyroscope (until stable)
 	iter := 0
 	for !o.Stable() {
-
-		o.Update(false)
+		o.Calibrate()
 		d.Paired = t.Paired()
 		state(iter)
 		trace(iter)
-
 		time.Sleep(time.Millisecond)
 		iter++
 	}
@@ -85,11 +84,11 @@ func main() {
 	for {
 
 		if !pinResetCenter.Get() { // Low means button pressed => shall reset center
-			o.Center()
+			o.Reset()
 			continue
 		}
 
-		o.Update(true)
+		o.Update()
 		for i, v := range o.Angles() {
 			a := angleToChannel(v)
 			t.SetChannel(i, a)
@@ -111,8 +110,8 @@ func main() {
 
 // --- Utils -------------------------------------------------------------------
 
-func angleToChannel(angle float32) uint16 {
-	result := uint16(1500 + degToMs*angle)
+func angleToChannel(angle float64) uint16 {
+	result := uint16(1500 + angle*radToMs)
 	if result < 988 {
 		return 988
 	}
