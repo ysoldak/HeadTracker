@@ -1,4 +1,4 @@
-# Zero configuration auto-calibrating wireless DIY head tracker
+# Zero configuration auto-calibrating DIY head tracker
 
 Head Tracker runs on [Arduino Nano 33 BLE](https://store.arduino.cc/arduino-nano-33-ble) and [Seeeduino XIAO BLE Sense](https://www.seeedstudio.com/Seeed-XIAO-BLE-Sense-nRF52840-p-5253.html) boards and connects to [OpenTX](https://github.com/opentx/opentx) and [ETHOS](https://ethos.frsky-rc.com) radios.  
 Both wired (PPM) and wireless (Bluetooth) trainer connection modes are supported.
