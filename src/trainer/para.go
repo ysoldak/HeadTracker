@@ -172,8 +172,8 @@ func (p *Para) Address() string {
 	return p.address
 }
 
-func (p *Para) Channels() [8]uint16 {
-	return p.channels
+func (p *Para) Channels() []uint16 {
+	return p.channels[:3]
 }
 
 func (p *Para) SetChannel(n int, v uint16) {
