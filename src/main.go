@@ -143,7 +143,8 @@ func state(iter int) {
 
 func trace(iter int) {
 	if iter%TRACE_COUNT == 0 { // print out state
-		r, p, y := t.Channels()[0], t.Channels()[1], t.Channels()[2]
+		channels := t.Channels()
+		r, p, y := channels[0], channels[1], channels[2]
 		rc, pc, yc := o.Offsets()
 		println(time.Now().Unix(), ": ", t.Address(), " | ", Version, " [", r, ",", p, ",", y, "] (", rc, ",", pc, ",", yc, ")")
 	}
