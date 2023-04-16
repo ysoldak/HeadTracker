@@ -1,5 +1,4 @@
 //go:build s140v7 || s140v6
-// +build s140v7 s140v6
 
 package trainer
 
