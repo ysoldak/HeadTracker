@@ -28,7 +28,7 @@ _This project switched to Go language ([TinyGo](https://tinygo.org) compiler) fr
 - **D10**: PPM signal pin, connect to audio jack tip and **GND** to jack body
 - **SDA&SCL**: I2C communication pins, connect them to 128x32 SSD1306 screen
 
-<img src="doc/xiao-ble-wiring.jpg" title="XIAO with screen and button on DJI Goggles" height="300"/>
+<img src="doc/xiao-ble-wiring.jpg" title="XIAO with screen and button on DJI Goggles" height="400"/>
 
 ## Supported boards
 
