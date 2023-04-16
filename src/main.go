@@ -2,6 +2,7 @@ package main
 
 import (
 	"math"
+	"runtime"
 	"time"
 
 	"github.com/ysoldak/HeadTracker/src/display"
@@ -17,6 +18,7 @@ const (
 	BLINK_WARM_COUNT = 125
 	BLINK_PARA_COUNT = 250
 	TRACE_COUNT      = 1000
+	GARBAGE_COUNT    = 1000
 
 	radToMs = 500.0 / math.Pi
 )
@@ -99,6 +101,7 @@ func main() {
 		// blink and trace
 		state(iter)
 		trace(iter)
+		garbage(iter)
 
 		// wait
 		time.Sleep(PERIOD * time.Millisecond)
@@ -147,5 +150,15 @@ func trace(iter int) {
 		r, p, y := channels[0], channels[1], channels[2]
 		rc, pc, yc := o.Offsets()
 		println(time.Now().Unix(), ": ", t.Address(), " | ", Version, " [", r, ",", p, ",", y, "] (", rc, ",", pc, ",", yc, ")")
+	}
+}
+
+// garbage collection forced to workaround bug in bluetooth lib (alloc in interrupt handler)
+func garbage(iter int) {
+	if iter%GARBAGE_COUNT == 0 {
+		runtime.GC()
+		// ms := runtime.MemStats{}
+		// runtime.ReadMemStats(&ms)
+		// println("Used: ", ms.HeapInuse, " Free: ", ms.HeapIdle, " Meta: ", ms.GCSys)
 	}
 }
