@@ -11,21 +11,23 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: tinygo/tinygo-dev:latest
+    container:
+      image: tinygo/tinygo:0.27.0
+      options: --user root
     steps:
 
     - name: Prepare
       run: |
-        apt-get install -y make git
+        apt-get update
+        apt-get install -y make
 
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
-    - name: Switch dependencies
+    - name: Dependencies
       run: |
-        sed -i.bak "s,=>.*\.\./bluetooth,=> github.com/ysoldak/bluetooth sd-gatts-sys-attr ," go.mod
         go mod tidy
 
     - name: Build XIAO BLE Sense binary
