@@ -3,8 +3,6 @@
 Head Tracker runs on [Arduino Nano 33 BLE](https://store.arduino.cc/arduino-nano-33-ble) and [Seeeduino XIAO BLE Sense](https://www.seeedstudio.com/Seeed-XIAO-BLE-Sense-nRF52840-p-5253.html) boards and connects to [OpenTX](https://github.com/opentx/opentx) and [ETHOS](https://ethos.frsky-rc.com) radios.  
 Both wired (PPM) and wireless (Bluetooth) trainer connection modes are supported.
 
-_This project switched to Go language ([TinyGo](https://tinygo.org) compiler) from classic Arduino C/C++ that had been archived in [arduino](https://github.com/ysoldak/HeadTracker/tree/arduino) branch._
-
 <table>
 <tr><td>
 <img src="case/XiaoBle1Closed.jpg" title="XIAO + SSD1306 128x32 on DJI Goggles" style="float: left;"/>
@@ -18,11 +16,15 @@ _This project switched to Go language ([TinyGo](https://tinygo.org) compiler) fr
 </td></tr>
 </table>
 
+## Camera Gimbal
+
+Check our DIY 3D printed [Micro Camera Gimbal](https://cults3d.com/en/3d-model/gadget/micro-camera-gimbal-ysoldak)
+
 ## Tested radios
 - FrSky X-Lite Pro (OpenTX)
 - FrSky X20S Tandem (EthOS)
 
-## Pin wiring reference
+## Wiring reference
 - **D2**: Orientation reset pin, use button that connects this pin to **GND**
 - **D8**: PPM mode activation pin, solder permanently or use positional switch to connect this pin to **GND**
 - **D10**: PPM signal pin, connect to audio jack tip and **GND** to jack body
