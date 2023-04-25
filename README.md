@@ -35,12 +35,13 @@ Join our dedicated [Facebook group](https://www.facebook.com/groups/242161055041
 - FrSky X20S Tandem (EthOS)
 
 ## Wiring reference
-- **D2**: Orientation reset pin, use button that connects this pin to **GND**
-- **D8**: PPM mode activation pin, solder permanently or use positional switch to connect this pin to **GND**
-- **D10**: PPM signal pin, connect to audio jack tip and **GND** to jack body
+- **D2**: Orientation reset pin, use a button that connects this pin to **GND**
+- **D8**: PPM mode activation pin, solder it permanently to **GND** or use a positional switch
+- **D10**: PPM signal pin, connect it to an audio jack tip and **GND** to the jack body
 - **SDA&SCL**: I2C communication pins, connect them to 128x32 SSD1306 screen
 
 <img src="doc/xiao-ble-wiring.jpg" title="XIAO with screen and button on DJI Goggles" height="400"/>
+<img src="doc/xiao-ble-wiring.png" title="XIAO with screen and button wiring diagram" height="400"/>
 
 ## Supported boards
 
