@@ -27,7 +27,7 @@ type Para struct {
 	fff6Handle bluetooth.Characteristic
 
 	buffer    []byte
-	sendAfter time.Time
+	sendDelay time.Duration
 
 	paired   bool
 	address  string
@@ -134,14 +134,11 @@ func (t *Para) Configure() {
 	addr, _ := t.adapter.Address()
 	t.address = addr.MAC.String()
 
-	t.adapter.SetConnectHandler(func(device bluetooth.Addresser, connected bool) {
+	t.adapter.SetConnectHandler(func(device bluetooth.Address, connected bool) {
 		if connected {
-			t.sendAfter = time.Now().Add(1 * time.Second)
-			t.fff6Handle.SetAttributes(fff6Attributes) // set CCCD bit telling the bluetooth stack notification is enabled / client subscribed
-			t.fff6Handle.Write(bootBuffer)             // sends '\r\n', it helps remote master switch to receiveTrainer state
+			t.sendDelay = 1 * time.Second
 			t.paired = true
 		} else {
-			t.sendAfter = time.Time{}
 			t.paired = false
 		}
 	})
@@ -149,9 +146,18 @@ func (t *Para) Configure() {
 }
 
 func (t *Para) Run() {
+	period := 20 * time.Millisecond
 	for {
-		time.Sleep(20 * time.Millisecond)
-		if t.sendAfter.IsZero() || time.Now().Before(t.sendAfter) {
+		time.Sleep(period)
+		if !t.paired {
+			continue
+		}
+		if t.sendDelay > 0 {
+			if t.sendDelay == 1*time.Second {
+				t.fff6Handle.SetAttributes(fff6Attributes) // set CCCD bit telling the bluetooth stack notification is enabled / client subscribed
+				t.fff6Handle.Write(bootBuffer)             // sends '\r\n', it helps remote master switch to receiveTrainer state
+			}
+			t.sendDelay -= period
 			continue
 		}
 		size := t.encode()
