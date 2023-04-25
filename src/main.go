@@ -18,8 +18,10 @@ const (
 	BLINK_WARM_COUNT = 125
 	BLINK_PARA_COUNT = 250
 	TRACE_COUNT      = 1000
-	GARBAGE_COUNT    = 1000
+	MEMORY_COUNT     = -1 // disabled
+)
 
+const (
 	radToMs = 500.0 / math.Pi
 )
 
@@ -101,7 +103,7 @@ func main() {
 		// blink and trace
 		state(iter)
 		trace(iter)
-		garbage(iter)
+		memory(iter)
 
 		// wait
 		time.Sleep(PERIOD * time.Millisecond)
@@ -153,12 +155,15 @@ func trace(iter int) {
 	}
 }
 
-// garbage collection forced to workaround bug in bluetooth lib (alloc in interrupt handler)
-func garbage(iter int) {
-	if iter%GARBAGE_COUNT == 0 {
-		runtime.GC()
-		// ms := runtime.MemStats{}
-		// runtime.ReadMemStats(&ms)
-		// println("Used: ", ms.HeapInuse, " Free: ", ms.HeapIdle, " Meta: ", ms.GCSys)
+// to debug memory usage or force GC if needed, disabled by default
+func memory(iter int) {
+	if MEMORY_COUNT < 0 {
+		return
+	}
+	if iter%MEMORY_COUNT == 0 {
+		// runtime.GC()
+		ms := runtime.MemStats{}
+		runtime.ReadMemStats(&ms)
+		println("Used: ", ms.HeapInuse, " Free: ", ms.HeapIdle, " Meta: ", ms.GCSys)
 	}
 }

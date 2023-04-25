@@ -24,5 +24,5 @@ require (
 )
 
 // replace tinygo.org/x/bluetooth => ../bluetooth
-// replace tinygo.org/x/bluetooth => github.com/ysoldak/bluetooth sd-gatts-sys-attr
-replace tinygo.org/x/bluetooth => github.com/ysoldak/bluetooth v0.3.1-0.20230416213703-d28e8fea43fe
+// replace tinygo.org/x/bluetooth => github.com/ysoldak/bluetooth sd-gatts-sys-attr-fix-panics
+replace tinygo.org/x/bluetooth => github.com/ysoldak/bluetooth v0.3.1-0.20230425185611-fea9f9a95b8a
