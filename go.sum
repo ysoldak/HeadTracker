@@ -38,8 +38,8 @@ github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINE
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/sago35/go-bdf v0.0.0-20200313142241-6c17821c91c4/go.mod h1:rOebXGuMLsXhZAC6mF/TjxONsm45498ZyzVhel++6KM=
-github.com/saltosystems/winrt-go v0.0.0-20230124093143-967a889c6c8f h1:sxsy5XkcxSzkiUkYgx38V9JviWLL8wthO2TURCi0Lcs=
-github.com/saltosystems/winrt-go v0.0.0-20230124093143-967a889c6c8f/go.mod h1:UvKm1lyhg+8ehk99i8g5Q7AX1LXUJgks0lRyAkG/ahQ=
+github.com/saltosystems/winrt-go v0.0.0-20230510070731-e096b9afa761 h1:xEscoMxTrGSpdho1mP9VnGsK0DGhXKwm0qP7kYcjgrI=
+github.com/saltosystems/winrt-go v0.0.0-20230510070731-e096b9afa761/go.mod h1:UvKm1lyhg+8ehk99i8g5Q7AX1LXUJgks0lRyAkG/ahQ=
 github.com/sirupsen/logrus v1.5.0/go.mod h1:+F7Ogzej0PZc/94MaYx/nvG9jOFMD2osvC3s+Squfpo=
 github.com/sirupsen/logrus v1.6.0/go.mod h1:7uNnSEd1DgxDLC74fIahvMZmmYsHGZGEOFrfsX/uA88=
 github.com/sirupsen/logrus v1.9.0 h1:trlNQbNUG3OdDrDil03MCb1H2o9nJ1x4/5LYw7byDE0=
@@ -59,8 +59,6 @@ github.com/tinygo-org/cbgo v0.0.4/go.mod h1:7+HgWIHd4nbAz0ESjGlJ1/v9LDU1Ox8MGzP9
 github.com/tracktum/go-ahrs v1.0.0 h1:MX4G3tyoenWrI/7KJecatsAywZT+LVqdKx4vhiWC6qA=
 github.com/tracktum/go-ahrs v1.0.0/go.mod h1:nplH+fle24YOGPZcU3Tb1CZx4gJc89lAeGOLjNbynIc=
 github.com/valyala/fastjson v1.6.3/go.mod h1:CLCAqky6SMuOcxStkYQvblddUtoRxhYMGLrsQns1aXY=
-github.com/ysoldak/bluetooth v0.3.1-0.20230425185611-fea9f9a95b8a h1:Ma/GZiRDDMubmRzBRV9Ry5qM6r/5glMZOUH4CD22/tA=
-github.com/ysoldak/bluetooth v0.3.1-0.20230425185611-fea9f9a95b8a/go.mod h1:K3EvIMHbqYpn+KNIabzrmR7QTJ+baZkveROeph3g4TE=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.4.1/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
@@ -134,6 +132,8 @@ gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c/go.mod h1:K4uyk7z7BCEPqu6E+C
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
 rsc.io/pdf v0.1.1/go.mod h1:n8OzWcQ6Sp37PL01nO98y4iUCRdTGarVfzxY20ICaU4=
+tinygo.org/x/bluetooth v0.6.1-0.20230515110423-87d24926c465 h1:VtQ8FybZigHNK7lR7Gg7/yr+q1cVASVwbBDXPpZrCZA=
+tinygo.org/x/bluetooth v0.6.1-0.20230515110423-87d24926c465/go.mod h1:G2oQOYHQgtveQYyGAIuXCKmUhMuj16n8HARxPfgAvuk=
 tinygo.org/x/drivers v0.14.0/go.mod h1:uT2svMq3EpBZpKkGO+NQHjxjGf1f42ra4OnMMwQL2aI=
 tinygo.org/x/drivers v0.15.1/go.mod h1:uT2svMq3EpBZpKkGO+NQHjxjGf1f42ra4OnMMwQL2aI=
 tinygo.org/x/drivers v0.16.0/go.mod h1:uT2svMq3EpBZpKkGO+NQHjxjGf1f42ra4OnMMwQL2aI=
