@@ -1,5 +1,3 @@
-//go:build s140v7 || s140v6
-
 package trainer
 
 // Bluetooth (FrSKY's PARA trainer protocol) link
@@ -14,12 +12,6 @@ import (
 // Since it looks for "Connected\r\n" and sometimes(?) bluetooth underlying layer on master radio
 // never sends "\r\n" and starts sending trainer data directly
 var bootBuffer = []byte{0x0d, 0x0a}
-
-// Theory https://devzone.nordicsemi.com/f/nordic-q-a/15571/automatically-start-notification-upon-connection-event-manually-write-cccd---short-tutorial-on-notifications
-// In practice these values were manually extracted after connecting to head tracker with BlueSee app
-// That 0x01 out there is CCCD bit telling the bluetooth stack notification is enabled / client subscribed
-// Last two bytes is CRC, see theory link
-var fff6Attributes = []byte{0x0d, 0x00, 0x02, 0x00, 0x02, 0x00, 0x22, 0x00, 0x02, 0x00, 0x01, 0x00, 0xcd, 0xa0}
 
 type Para struct {
 	adapter    *bluetooth.Adapter
@@ -154,8 +146,8 @@ func (t *Para) Run() {
 		}
 		if t.sendDelay > 0 {
 			if t.sendDelay == 1*time.Second {
-				t.fff6Handle.SetAttributes(fff6Attributes) // set CCCD bit telling the bluetooth stack notification is enabled / client subscribed
-				t.fff6Handle.Write(bootBuffer)             // sends '\r\n', it helps remote master switch to receiveTrainer state
+				setSoftDeviceSystemAttributes() // force enable notify for fff6
+				t.fff6Handle.Write(bootBuffer)  // send '\r\n', it helps remote master switch to receiveTrainer state
 			}
 			t.sendDelay -= period
 			continue
