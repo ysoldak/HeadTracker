@@ -1,7 +1,28 @@
 # Zero configuration auto-calibrating DIY head tracker
 
-Head Tracker runs on [Arduino Nano 33 BLE](https://store.arduino.cc/arduino-nano-33-ble) and [Seeeduino XIAO BLE Sense](https://www.seeedstudio.com/Seeed-XIAO-BLE-Sense-nRF52840-p-5253.html) boards and connects to [OpenTX](https://github.com/opentx/opentx) and [ETHOS](https://ethos.frsky-rc.com) radios.  
-Both wired (PPM) and wireless (Bluetooth) trainer connection modes are supported.
+Head Tracker runs on [Seeeduino XIAO BLE Sense](https://www.seeedstudio.com/Seeed-XIAO-BLE-Sense-nRF52840-p-5253.html) and [Arduino Nano 33 BLE](https://store.arduino.cc/arduino-nano-33-ble) boards and connects to [OpenTX](https://github.com/opentx/opentx) and [ETHOS](https://ethos.frsky-rc.com) radios via either wired (PPM) or wireless (Bluetooth) trainer link.
+
+## Quick Setup
+
+- **Buy** [Seeeduino XIAO BLE Sense](https://www.seeedstudio.com/Seeed-XIAO-BLE-Sense-nRF52840-p-5253.html) board
+- **Flash firmware**
+  - Plug-in the board to your computer
+  - Double tap on `RST` button on the board (little one, near USB-C connector), `XIAO-SENSE` USB drive pops up
+  - Download `ht_xiao-ble_x.x.x.uf2` from latest [release](https://github.com/ysoldak/HeadTracker/releases)
+  - Copy the file to `XIAO-SENSE` USB drive
+  - USB drive disconnects itself and reboots (congrats! now you have your head tracker!)
+- **Connect to your radio**
+  - Pick up your radio with wireless trainer link (Bluetooth)  
+    _all recent FrSky radios have wireless trainer, popular [Radiomaster TX16S can be modified to have bluetooth](https://www.instructables.com/Bluetooth-on-Radiomaster-TX16S/)_
+  - Connect XIAO BLE Sense board as a wireless trainer  
+    _learn board's ID via [serial console](https://docs.arduino.cc/software/ide-v2/tutorials/ide-v2-serial-monitor) or by attaching little screen (see below) or by walking with your laptop, radio and board away from other bluetooth sources_
+  - Define mixers from Trainer 1,2 and 3 channels to your desired model outputs
+- **Attach Head Tracker to your FPV goggles**  
+  _see STL files in "case" folder_
+- **Calibrate and Setup**  
+  _nothing to do here, skip to the next item_
+- **HAVE FUN!**  
+  _and consider installing our own [fpv camera gimbal](https://cults3d.com/en/3d-model/gadget/micro-camera-gimbal-ysoldak) to your favourite model!_
 
 <table>
 <tr><td>
