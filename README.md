@@ -16,13 +16,20 @@ Head Tracker runs on [Seeeduino XIAO BLE Sense](https://www.seeedstudio.com/Seee
     _all recent FrSky radios have wireless trainer, popular [TX16S can be modified to have bluetooth](https://www.instructables.com/Bluetooth-on-Radiomaster-TX16S/)_
   - Connect XIAO BLE Sense board as a wireless trainer  
     _learn board's ID via [serial console](https://docs.arduino.cc/software/ide-v2/tutorials/ide-v2-serial-monitor) or by attaching little screen (see below) or by walking with your laptop, radio and board away from other bluetooth sources_
-  - Define mixers from Trainer 1,2 and 3 channels to your desired model outputs
+  - Define mixers from Trainer 1,2 and 3 channels to your desired model outputs  
+    _you may want to scale outputs to match rotation angels of the head tracker and your camera gimbal_
 - **Attach Head Tracker to your FPV goggles**  
   _see STL files in "case" folder, screen and button are optional_
 - **Calibrate and Setup**  
   _nothing to do here, skip to the next item_
 - **HAVE FUN!**  
   _and consider installing our own [fpv camera gimbal](https://cults3d.com/en/3d-model/gadget/micro-camera-gimbal-ysoldak) to your favourite model!_
+
+## Video Tutorials
+- [Connect the head tracker wirelessly to your radio](https://youtu.be/b292hyC5Ctk?t=280)  
+  _watch full video to learn how to power the head tracker with a 1-cell lipo battery_
+
+---
 
 <table>
 <tr><td>
@@ -54,6 +61,7 @@ Join our dedicated [Facebook group](https://www.facebook.com/groups/242161055041
 ## Tested radios
 - FrSky X-Lite Pro (OpenTX)
 - FrSky X20S Tandem (EthOS)
+- [Radiomaster TX16S can be modified to have wireless trainer link](https://www.instructables.com/Bluetooth-on-Radiomaster-TX16S/) and work with the head tracker
 
 ## Wiring reference
 - **D2**: Orientation reset pin, use a button that connects this pin to **GND**
