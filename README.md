@@ -12,8 +12,8 @@ Head Tracker runs on [Seeeduino XIAO BLE Sense](https://www.seeedstudio.com/Seee
   - Copy the file to `XIAO-SENSE` USB drive
   - USB drive disconnects itself and reboots (congrats! now you have your head tracker!)
 - **Connect to your radio**
-  - Pick up your radio with wireless trainer link (Bluetooth)  
-    _all recent FrSky radios have wireless trainer, popular [TX16S can be modified to have bluetooth](https://www.instructables.com/Bluetooth-on-Radiomaster-TX16S/)_
+  - Pick up your radio with wireless trainer link (PARA, Bluetooth)  
+    _all recent FrSky radios have wireless trainer that works, other radios may or may not work, depends on the bluetooth module installed_
   - Connect XIAO BLE Sense board as a wireless trainer  
     _learn board's ID via [serial console](https://docs.arduino.cc/software/ide-v2/tutorials/ide-v2-serial-monitor) or by attaching little screen (see below) or by walking with your laptop, radio and board away from other bluetooth sources_
   - Define mixers from Trainer 1,2 and 3 channels to your desired model outputs  
