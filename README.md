@@ -61,7 +61,7 @@ Join our dedicated [Facebook group](https://www.facebook.com/groups/242161055041
 ## Tested radios
 - FrSky X-Lite Pro (OpenTX)
 - FrSky X20S Tandem (EthOS)
-- [Radiomaster TX16S can be modified to have wireless trainer link](https://www.instructables.com/Bluetooth-on-Radiomaster-TX16S/) and work with the head tracker
+- [Radiomaster TX16S can be modified to have wireless trainer link](https://github.com/ysoldak/HeadTracker/discussions/31) and work with the head tracker
 
 ## Wiring reference
 - **D2**: Orientation reset pin, use a button that connects this pin to **GND**
