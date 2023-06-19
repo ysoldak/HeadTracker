@@ -16,10 +16,10 @@ func setSoftDeviceSystemAttributes() {
 	connHandle := uint16(1)
 	for {
 		err := C.sd_ble_gatts_sys_attr_set(connHandle, &sysAttributes[0], length, 0)
-		if err > C.NRF_ERROR_BASE_NUM && err == C.NRF_SUCCESS {
+		if err == 0x0 { // NRF_SUCCESS
 			return
 		}
-		if err > C.NRF_ERROR_STK_BASE_NUM && err == C.BLE_ERROR_INVALID_CONN_HANDLE {
+		if err == 0x3002 { // BLE_ERROR_INVALID_CONN_HANDLE
 			connHandle++
 		}
 		if connHandle > 128 {
