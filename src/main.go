@@ -35,6 +35,7 @@ func init() {
 
 	initLeds()
 	initPins()
+	initExtras()
 
 	// Orientation
 	o = orientation.New()
