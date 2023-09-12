@@ -39,3 +39,10 @@ jobs:
 
     - name: Build Nano 33 BLE binary
       run: make TARGET=nano-33-ble-s140v6-uf2 build
+
+    - name: Store binaries
+      uses: actions/upload-artifact@v3
+      with:
+        name: binaries
+        path: build/*
+        retention-days: 14
