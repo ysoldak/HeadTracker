@@ -17,7 +17,7 @@ Head Tracker runs on [Seeeduino XIAO BLE Sense](https://www.seeedstudio.com/Seee
   - Connect XIAO BLE Sense board as a wireless trainer  
     _learn board's ID via [serial console](https://docs.arduino.cc/software/ide-v2/tutorials/ide-v2-serial-monitor) or by attaching little screen (see below) or by walking with your laptop, radio and board away from other bluetooth sources_
   - Define mixers from Trainer 1,2 and 3 channels to your desired model outputs  
-    _you may want to scale outputs to match rotation angels of the head tracker and your camera gimbal_
+    _you may want to [scale outputs to match rotation angels of the head tracker and your camera gimbal](doc/RadioConfiguration.md)_
 - **Attach Head Tracker to your FPV goggles**  
   _see STL files in "case" folder, screen and button are optional_
 - **Calibrate and Setup**  
