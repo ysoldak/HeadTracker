@@ -46,15 +46,18 @@ Head Tracker runs on [Seeeduino XIAO BLE Sense](https://www.seeedstudio.com/Seee
 
 ## Camera Gimbal
 Check our DIY 3D printed [Micro Camera Gimbal](https://cults3d.com/en/3d-model/gadget/micro-camera-gimbal-ysoldak)  
-Join our dedicated [Facebook group](https://www.facebook.com/groups/242161055041994)
+Join our dedicated [Facebook group](https://www.facebook.com/groups/242161055041994)  
+
+Also available now to [order ready to use on Etsy](https://www.etsy.com/se-en/listing/1572644964/fpv-camera-gimbal-for-micro-servos)
+
 <table>
 <tr><td colspan="2">
-<img src="media/MCG_Angle.jpg" title="Micro Camera Gimbal, angle" height="400" />
+<img src="media/MCG_Angle.jpg" title="Micro Camera Gimbal, angle" width="100%" />
 </td></tr>
 <tr><td>
-<img src="media/MCG_Front.jpg" title="Micro Camera Gimbal, front" height="375" />
+<img src="media/MCG_Front.jpg" title="Micro Camera Gimbal, front" width="100%" />
 </td><td>
-<img src="media/MCG_Side.jpg" title="Micro Camera Gimbal, side" height="375" />
+<img src="media/MCG_Side.jpg" title="Micro Camera Gimbal, side" width="100%" />
 </td></tr>
 </table>
 
