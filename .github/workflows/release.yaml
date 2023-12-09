@@ -8,7 +8,7 @@ jobs:
   upload:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/tinygo-org/tinygo:0.28.1
+      image: ghcr.io/tinygo-org/tinygo:0.30.0
       options: --user root
     steps:
 
