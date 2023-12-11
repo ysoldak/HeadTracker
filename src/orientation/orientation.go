@@ -73,11 +73,6 @@ func (o *Orientation) Update() {
 	o.current.V = mgl.Vec3{q[1], q[2], q[3]}
 }
 
-// Stable state indicates gyroscope calibration is good
-func (o *Orientation) Stable() bool {
-	return o.imu.gyrCal.Stable
-}
-
 // Angles in radians
 func (o *Orientation) Angles() (angles [3]float64) {
 	q := o.current
@@ -87,6 +82,28 @@ func (o *Orientation) Angles() (angles [3]float64) {
 	return
 }
 
+// Stable state indicates gyroscope calibration is good
+func (o *Orientation) Stable() bool {
+	return o.imu.gyrCal.Stable
+}
+
+func (o *Orientation) SetStable(stable bool) {
+	o.imu.gyrCal.Stable = stable
+}
+
 func (o *Orientation) Offsets() (roll, pitch, yaw int32) {
 	return o.imu.gyrCal.Offset[0], o.imu.gyrCal.Offset[1], o.imu.gyrCal.Offset[2]
+}
+
+func (o *Orientation) SetOffsets(roll, pitch, yaw int32) {
+	o.imu.gyrCal.Offset[0] = roll
+	o.imu.gyrCal.Offset[1] = pitch
+	o.imu.gyrCal.Offset[2] = yaw
+	if roll == 0 && pitch == 0 && yaw == 0 {
+		return
+	}
+	// calibration shall skip aggressive first force adjustments when data is non-zero
+	o.imu.gyrCal.countAdjust[0] = gyrCalForceAdjustment + 1
+	o.imu.gyrCal.countAdjust[1] = gyrCalForceAdjustment + 1
+	o.imu.gyrCal.countAdjust[2] = gyrCalForceAdjustment + 1
 }
