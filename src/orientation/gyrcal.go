@@ -81,7 +81,9 @@ func (g *GyrCal) adjustAxisOffset(i int32) {
 	if g.countEscape[i] < gyrCalBatchEscapeMax || g.countAdjust[i] < gyrCalForceAdjustment {
 		g.correctionLast[i] = g.correctionSum[i] / 2 // be careful and half-step
 		g.Offset[i] += g.correctionLast[i]
+		if g.countAdjust[i] < gyrCalForceAdjustment {
 			g.countAdjust[i]++
+		}
 	}
 	g.correctionSum[i] = 0
 	g.countApply[i] = 0
