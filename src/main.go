@@ -29,6 +29,7 @@ var (
 	d *display.Display
 	t trainer.Trainer
 	o *orientation.Orientation
+	f *Flash
 )
 
 func init() {
@@ -47,8 +48,6 @@ func init() {
 	} else {
 		t = trainer.NewPara()
 	}
-	t.Configure()
-	go t.Run()
 
 	// Display
 	d = display.New()
@@ -58,6 +57,8 @@ func init() {
 
 	d.Configure()
 	go d.Run()
+
+	f = &Flash{}
 
 }
 
@@ -69,20 +70,37 @@ func main() {
 		time.Sleep(PERIOD * time.Millisecond)
 	}
 
+	flashLoad()
+
 	// record initial orientation
 	o.Reset()
 
 	// calibrate gyroscope (until stable)
 	iter := 0
-	for !o.Stable() {
+	for {
 		o.Calibrate()
 		d.Paired = t.Paired()
-		state(iter)
+		stateMain(iter)
+		stateCalibration(iter)
 		trace(iter)
 		time.Sleep(time.Millisecond)
 		iter++
+		if iter > 3000 && !f.IsEmpty() { // when had some calibration already, force it if was not able to find better quickly
+			o.SetOffsets(f.roll, f.pitch, f.yaw)
+			o.SetStable(true)
+		}
+		if o.Stable() {
+			break
+		}
 	}
 	d.Stable = true
+	off(ledR) // calibrated
+
+	flashStore()
+
+	// enable trainer after flash operations (bluetooth conflicts with flash)
+	t.Configure()
+	go t.Run()
 
 	// main loop
 	iter = 0
@@ -102,19 +120,66 @@ func main() {
 		d.Paired = t.Paired()
 
 		// blink and trace
-		state(iter)
+		stateMain(iter)
+		statePara(iter)
 		trace(iter)
 		memory(iter)
 
 		// wait
 		time.Sleep(PERIOD * time.Millisecond)
 		iter += PERIOD
-
+		iter %= 1_000_000
 	}
 
 }
 
 // --- Utils -------------------------------------------------------------------
+
+func flashLoad() {
+	// reset calibration data when button is pressed
+	resetGyrCalOffsets := !pinResetCenter.Get()
+	// wait until button is released
+	for !pinResetCenter.Get() {
+		time.Sleep(10 * time.Millisecond)
+	}
+	// clear data on flash, "f" object is empty at this point
+	if resetGyrCalOffsets {
+		err := f.Store()
+		if err != nil {
+			println(time.Now().Unix(), err.Error())
+		}
+	}
+
+	// load calibration data, can be empty
+	err := f.Load()
+	if err != nil {
+		println(time.Now().Unix(), err.Error())
+	}
+
+	// set offsets, they are either actual previous calibration result or zeroes inially and in case of error
+	o.SetOffsets(f.roll, f.pitch, f.yaw) // zeroes at worst
+}
+
+const storeDiffTreshold = 100_000
+
+// Store only when difference is large enough
+func flashStore() {
+	roll, pitch, yaw := o.Offsets()
+	if abs(f.roll-roll) > storeDiffTreshold || abs(f.pitch-pitch) > storeDiffTreshold || abs(f.yaw-yaw) > storeDiffTreshold {
+		f.roll, f.pitch, f.yaw = roll, pitch, yaw
+		err := f.Store()
+		if err != nil {
+			println(time.Now().Unix(), err.Error())
+		}
+	}
+}
+
+func abs(v int32) int32 {
+	if v < 0 {
+		return -v
+	}
+	return v
+}
 
 func angleToChannel(angle float64) uint16 {
 	result := uint16(1500 + angle*radToMs)
@@ -127,17 +192,19 @@ func angleToChannel(angle float64) uint16 {
 	return result
 }
 
-func state(iter int) {
+func stateMain(iter int) {
 	if iter%BLINK_MAIN_COUNT == 0 { // indicate main loop running
 		toggle(led)
 	}
+}
+
+func stateCalibration(iter int) {
 	if iter%BLINK_WARM_COUNT == 0 { // indicate warm loop running
-		if o.Stable() {
-			off(ledR) // off, warmed up
-		} else {
-			toggle(ledR)
-		}
+		toggle(ledR)
 	}
+}
+
+func statePara(iter int) {
 	if iter%BLINK_PARA_COUNT == 0 { // indicate para (bluetooth) state
 		if t.Paired() {
 			on(ledB) // on, connected
