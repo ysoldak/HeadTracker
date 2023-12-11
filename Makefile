@@ -7,7 +7,7 @@ else
 FILE = ht_nano-33-ble_$(VERSION).uf2
 endif
 
-.PHONY: clean build flash
+.PHONY: clean build flash monitor
 
 # --- Common targets ---
 
@@ -23,6 +23,9 @@ build:
 
 flash:
 	tinygo flash $(LD_FLAGS) -target=$(TARGET) -size=$(SIZE) -opt=z -print-allocs=main ./src
+
+monitor:
+	tinygo monitor -target=$(TARGET)
 
 # --- Arduino Nano 33 BLE bootloader targets ---
 
