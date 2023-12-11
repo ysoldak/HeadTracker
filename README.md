@@ -29,6 +29,10 @@ Head Tracker runs on [Seeeduino XIAO BLE Sense](https://www.seeedstudio.com/Seee
 - [Connect the head tracker wirelessly to your radio](https://youtu.be/b292hyC5Ctk?t=280)  
   _watch full video to learn how to power the head tracker with a 1-cell lipo battery_
 
+## Fully assembed
+
+Don't feel DIY? [Order the fully assembled head tracker with display and button](https://www.etsy.com/se-en/listing/1604692148/zero-configuration-auto-calibrating-head) from our shop at Etsy.
+
 ---
 
 <table>
@@ -115,6 +119,7 @@ On start, board shall blink continuously blue, red and green/orange leds.
 ### Buttons
 The head tracker records initial orientation on power up, place your goggles accordingly.  
 Optionally, a **reset orientation** button can be wired to **D2** and **GND** pins.
+Keep **reset orientation** button pressed on power up to discard calibration parameters stored in flash memory.
 
 ### Screen
 If you have a LED 128x32 screen added you your board (via I2C), the board's bluetooth address is displayed on it. Blinking ":" symbols indicate bluetooth connection status, like blue led. Upon start, while gyroscope is calibrating, you shall see head tracker version briefly on the screen. The version is then replaced by 3 horisonal bars, one for each axis: roll, pitch and yaw.
