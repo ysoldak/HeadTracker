@@ -1,5 +1,29 @@
 package orientation
 
+// Constant gyroscope calibration for slow moving objects.
+//
+// Every gyroscope has bias and jitter on each of its 3 axes.
+// The bias is usually relatively small but induces drift with time, if not adjusted for.
+//
+// The algorithm implemented here is suited for slowly rotating objects like a head tracker.
+// Calibration addresses bias only, represented with "Offset" for each of axes.
+//
+// When gyroscope is calibrated and stationary, values from gyro with offsets applied, shall all be around zero.
+// The non-zero small values are jitter that shall compensate itself out when summed up.
+//
+// When gyroscope is stationary, or nearly stationary, we can observe bias on each of axis by
+// summing up read values and taking avg value of them ("gyrCalBatchSize").
+// The offset then adjusted to minimise next calculated avg value.
+//
+// Note:
+// We can not expect the device be stationary for a long time, we also want to keep calibarion running
+// even during normal operation. The non-stationary values are recognised when they escape "gyrCalValueThreshold".
+// A whole batch of values is ignored when many large values are observed, see "gyrCalBatchEscapeMax".
+//
+// The calibration is good enough when latest offset correction for each of axes are small,
+// that means remaining error is small too and can not induce much drift anymore.
+// The good enough calibration is indicated by "Stable" flag.
+
 const (
 	gyrCalBatchSize           = 1000                 // 1 sec on warm-up, 20 sec during regular operation
 	gyrCalBatchEscapeMax      = gyrCalBatchSize / 10 // tolerate 10% values outside threshold
@@ -57,7 +81,7 @@ func (g *GyrCal) adjustAxisOffset(i int32) {
 	if g.countEscape[i] < gyrCalBatchEscapeMax || g.countAdjust[i] < gyrCalForceAdjustment {
 		g.correctionLast[i] = g.correctionSum[i] / 2 // be careful and half-step
 		g.Offset[i] += g.correctionLast[i]
-		g.countAdjust[i]++
+			g.countAdjust[i]++
 	}
 	g.correctionSum[i] = 0
 	g.countApply[i] = 0
