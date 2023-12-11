@@ -25,6 +25,8 @@ const (
 	radToMs = 500.0 / math.Pi
 )
 
+const flashStoreTreshold = 10_000
+
 var (
 	d *display.Display
 	t trainer.Trainer
@@ -135,6 +137,21 @@ func main() {
 
 // --- Utils -------------------------------------------------------------------
 
+// --- Core ----
+
+func angleToChannel(angle float64) uint16 {
+	result := uint16(1500 + angle*radToMs)
+	if result < 988 {
+		return 988
+	}
+	if result > 2012 {
+		return 2012
+	}
+	return result
+}
+
+// --- Flash ----
+
 func flashLoad() {
 	// reset calibration data when button is pressed
 	resetGyrCalOffsets := !pinResetCenter.Get()
@@ -160,12 +177,10 @@ func flashLoad() {
 	o.SetOffsets(f.roll, f.pitch, f.yaw) // zeroes at worst
 }
 
-const storeDiffTreshold = 100_000
-
 // Store only when difference is large enough
 func flashStore() {
 	roll, pitch, yaw := o.Offsets()
-	if abs(f.roll-roll) > storeDiffTreshold || abs(f.pitch-pitch) > storeDiffTreshold || abs(f.yaw-yaw) > storeDiffTreshold {
+	if abs(f.roll-roll) > flashStoreTreshold || abs(f.pitch-pitch) > flashStoreTreshold || abs(f.yaw-yaw) > flashStoreTreshold {
 		f.roll, f.pitch, f.yaw = roll, pitch, yaw
 		err := f.Store()
 		if err != nil {
@@ -181,16 +196,7 @@ func abs(v int32) int32 {
 	return v
 }
 
-func angleToChannel(angle float64) uint16 {
-	result := uint16(1500 + angle*radToMs)
-	if result < 988 {
-		return 988
-	}
-	if result > 2012 {
-		return 2012
-	}
-	return result
-}
+// --- Logging ----
 
 func stateMain(iter int) {
 	if iter%BLINK_MAIN_COUNT == 0 { // indicate main loop running
