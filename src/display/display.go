@@ -28,7 +28,7 @@ type Display struct {
 func New() *Display {
 	return &Display{
 		Paired:   false,
-		Address:  "B1:6B:00:B5:BA:BE",
+		Address:  "Calibrating...",
 		Channels: [3]uint16{1500, 1500, 1500},
 	}
 }
@@ -49,19 +49,19 @@ func (d *Display) Configure() {
 }
 
 func (d *Display) Run() {
+	d.showVersion()
 	d.showAddress()
-	clearVersion := true
+	clear := true
 	for {
 		if d.Stable {
-			if clearVersion {
-				d.showVersion(BLACK)
-				clearVersion = false
+			if clear {
+				d.device.ClearDisplay()
+				d.showAddress()
+				clear = false
 			}
 			for i := 0; i < 3; i++ {
 				d.showValue(i)
 			}
-		} else {
-			d.showVersion(WHITE)
 		}
 		if d.Bluetooth {
 			d.showPaired()

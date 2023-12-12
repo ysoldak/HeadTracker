@@ -53,9 +53,7 @@ func init() {
 
 	// Display
 	d = display.New()
-	d.Address = t.Address()
 	d.Version = Version
-	d.Bluetooth = pinSelectPPM.Get() // High means Bluetooth
 
 	d.Configure()
 	go d.Run()
@@ -95,14 +93,20 @@ func main() {
 			break
 		}
 	}
-	d.Stable = true
-	off(ledR) // calibrated
+	// indicate calibration is over
+	off(ledR)
 
+	// store calibration values
 	flashStore()
 
 	// enable trainer after flash operations (bluetooth conflicts with flash)
 	t.Configure()
 	go t.Run()
+
+	// switch display to normal mode
+	d.Address = t.Address()
+	d.Bluetooth = pinSelectPPM.Get() // high means Bluetooth
+	d.Stable = true
 
 	// main loop
 	iter = 0

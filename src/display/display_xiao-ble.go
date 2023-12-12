@@ -3,8 +3,6 @@
 package display
 
 import (
-	"image/color"
-
 	"tinygo.org/x/tinydraw"
 	"tinygo.org/x/tinyfont"
 	"tinygo.org/x/tinyfont/proggy"
@@ -14,8 +12,8 @@ func (d *Display) showAddress() {
 	tinyfont.WriteLineRotated(&d.device, &proggy.TinySZ8pt7b, 14, 28, d.Address, WHITE, tinyfont.NO_ROTATION)
 }
 
-func (d *Display) showVersion(color color.RGBA) {
-	tinyfont.WriteLineRotated(&d.device, &proggy.TinySZ8pt7b, 14, 12, d.Version, color, tinyfont.NO_ROTATION)
+func (d *Display) showVersion() {
+	tinyfont.WriteLineRotated(&d.device, &proggy.TinySZ8pt7b, 14, 12, d.Version, WHITE, tinyfont.NO_ROTATION)
 }
 
 func (d *Display) showValue(idx int) {
