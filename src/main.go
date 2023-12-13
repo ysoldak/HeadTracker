@@ -74,15 +74,18 @@ func main() {
 	o.Reset()
 
 	// calibrate gyroscope (until stable)
-	iter := 0
+	iter := uint16(0)
 	for {
 		o.Calibrate()
 		d.Paired = t.Paired()
 		stateMain(iter)
 		stateCalibration(iter)
 		trace(iter)
+
 		time.Sleep(time.Millisecond)
 		iter++
+		iter %= 10_000
+
 		if iter > 3000 && !f.IsEmpty() { // when had some calibration already, force it if was not able to find better quickly
 			o.SetOffsets(f.roll, f.pitch, f.yaw)
 			o.SetStable(true)
@@ -91,6 +94,7 @@ func main() {
 			break
 		}
 	}
+
 	// indicate calibration is over
 	off(ledR)
 
@@ -131,7 +135,7 @@ func main() {
 		// wait
 		time.Sleep(PERIOD * time.Millisecond)
 		iter += PERIOD
-		iter %= 1_000_000
+		iter %= 10_000
 	}
 
 }
@@ -199,19 +203,19 @@ func abs(v int32) int32 {
 
 // --- Logging ----
 
-func stateMain(iter int) {
+func stateMain(iter uint16) {
 	if iter%BLINK_MAIN_COUNT == 0 { // indicate main loop running
 		toggle(led)
 	}
 }
 
-func stateCalibration(iter int) {
+func stateCalibration(iter uint16) {
 	if iter%BLINK_WARM_COUNT == 0 { // indicate warm loop running
 		toggle(ledR)
 	}
 }
 
-func statePara(iter int) {
+func statePara(iter uint16) {
 	if iter%BLINK_PARA_COUNT == 0 { // indicate para (bluetooth) state
 		if t.Paired() {
 			on(ledB) // on, connected
@@ -221,7 +225,7 @@ func statePara(iter int) {
 	}
 }
 
-func trace(iter int) {
+func trace(iter uint16) {
 	if iter%TRACE_COUNT == 0 { // print out state
 		channels := t.Channels()
 		r, p, y := channels[0], channels[1], channels[2]
