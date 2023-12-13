@@ -8,22 +8,33 @@ import (
 	"tinygo.org/x/tinyfont/proggy"
 )
 
-func (d *Display) showAddress() {
-	tinyfont.WriteLineRotated(&d.device, &proggy.TinySZ8pt7b, 14, 28, d.Address, WHITE, tinyfont.NO_ROTATION)
-}
-
-func (d *Display) showVersion() {
-	tinyfont.WriteLineRotated(&d.device, &proggy.TinySZ8pt7b, 14, 12, d.Version, WHITE, tinyfont.NO_ROTATION)
+func (d *Display) showText() {
+	for i := range d.Text {
+		if d.Text[i] == "" {
+			continue
+		}
+		tinyfont.WriteLineRotated(&d.device, &proggy.TinySZ8pt7b, 14, 12+int16(i)*16, d.Text[i], WHITE, tinyfont.NO_ROTATION)
+	}
 }
 
 func (d *Display) showValue(idx int) {
-	x := int16(64 + (int16(d.Channels[idx])-1500)/10)
+	if d.Text[0] != "" {
+		return
+	}
+	x := (int16(d.Channels[idx]) - 1500) / 10
 	y := int16(idx * 5)
 	tinydraw.FilledRectangle(&d.device, 13, y, 115, 3, BLACK)
-	if x < 64 {
-		tinydraw.FilledRectangle(&d.device, x, y, 64-x, 3, WHITE)
+	if !d.Stable {
+		if x < 0 {
+			x = -x
+		}
+		tinydraw.FilledRectangle(&d.device, 64-x-1, y, x*2+2, 3, WHITE)
+		return
+	}
+	if x < 0 {
+		tinydraw.FilledRectangle(&d.device, 64+x, y, -x, 3, WHITE)
 	} else {
-		tinydraw.FilledRectangle(&d.device, 64, y, x-64, 3, WHITE)
+		tinydraw.FilledRectangle(&d.device, 64, y, x, 3, WHITE)
 	}
 }
 
