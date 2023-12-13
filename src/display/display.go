@@ -6,32 +6,42 @@ import (
 	"time"
 
 	"tinygo.org/x/drivers/ssd1306"
+	"tinygo.org/x/tinydraw"
+	"tinygo.org/x/tinyfont"
+	"tinygo.org/x/tinyfont/proggy"
 )
 
 var BLACK = color.RGBA{0, 0, 0, 255}
 var WHITE = color.RGBA{255, 255, 255, 255}
 
+type Text struct {
+	row     byte
+	text    string
+	altText string
+	blink   func() bool
+}
+
+type Bar struct {
+	value int16
+	bidir bool
+}
+
 type Display struct {
 	device ssd1306.Device
 
-	Bluetooth  bool
 	blinkCount int
 	blinkColor color.RGBA
 
-	clear bool
+	showBars bool
 
-	Paired   bool
-	Stable   bool
-	Text     [2]string
-	Channels [3]uint16
+	Texts []*Text
+	Bars  [3]Bar
 }
 
 func New() *Display {
 	return &Display{
-		clear:    true,
-		Paired:   false,
-		Text:     [2]string{"", ""},
-		Channels: [3]uint16{1500, 1500, 1500},
+		Texts: []*Text{},
+		Bars:  [3]Bar{},
 	}
 }
 
@@ -50,25 +60,123 @@ func (d *Display) Configure() {
 	d.device.ClearDisplay()
 }
 
-func (d *Display) SetText(text [2]string) {
-	d.Text = text
-	d.clear = true
+func (d *Display) RemoveTextRow(row byte) { // TODO use reslice for efficiency
+	result := []*Text{}
+	for _, t := range d.Texts {
+		if t.row == row {
+			d.print(t.row, t.text, BLACK)
+			d.print(t.row, t.altText, BLACK)
+			continue
+		}
+		result = append(result, t)
+	}
+	d.Texts = result
+}
+
+func (d *Display) RemoveText(text *Text) { // TODO use reslice for efficiency
+	result := []*Text{}
+	for _, t := range d.Texts {
+		if text == nil || t == text {
+			d.print(t.row, t.text, BLACK)
+			d.print(t.row, t.altText, BLACK)
+			continue
+		}
+		result = append(result, t)
+	}
+	d.Texts = result
+}
+
+func (d *Display) AddText(row byte, text string) *Text {
+	t := &Text{row, text, text, nil}
+	d.Texts = append(d.Texts, t)
+	d.print(t.row, t.text, WHITE)
+	return t
+}
+
+func (d *Display) SetTextBlink(text *Text, other string, blink bool) *Text {
+	for _, t := range d.Texts {
+		if t == text {
+			t.altText = other
+			t.blink = func() bool { return blink }
+		}
+	}
+	return text
+}
+
+func (d *Display) SetTextBlinkFunc(text *Text, other string, blink func() bool) *Text {
+	for _, t := range d.Texts {
+		if t == text {
+			t.altText = other
+			t.blink = blink
+		}
+	}
+	return text
+}
+
+func (d *Display) SetBar(row byte, value int16, bidir bool) {
+	d.showBars = true
+	d.Bars[row].value = value
+	d.Bars[row].bidir = bidir
 }
 
 func (d *Display) Run() {
 	for {
-		if d.clear {
-			d.device.ClearDisplay()
-			d.showText()
-			d.clear = false
-		}
-		for i := 0; i < 3; i++ {
-			d.showValue(i)
-		}
-		if d.Bluetooth {
-			d.showPaired()
-		}
+		d.bars()
+		d.blink()
 		d.device.Display()
 		time.Sleep(100 * time.Millisecond)
 	}
+}
+
+func (d *Display) bars() {
+	if !d.showBars {
+		return
+	}
+	for row, b := range d.Bars {
+		y := int16(row * 5)
+		tinydraw.FilledRectangle(&d.device, 13, y, 115, 3, BLACK)
+		length := b.value
+		if length < 0 {
+			tinydraw.FilledRectangle(&d.device, 64+length, y, -length, 3, WHITE)
+			if b.bidir {
+				tinydraw.FilledRectangle(&d.device, 64, y, -length, 3, WHITE)
+			}
+		} else {
+			tinydraw.FilledRectangle(&d.device, 64, y, length, 3, WHITE)
+			if b.bidir {
+				tinydraw.FilledRectangle(&d.device, 64-length, y, length, 3, WHITE)
+			}
+		}
+	}
+}
+
+func (d *Display) blink() {
+	if d.blinkCount > 0 {
+		d.blinkCount--
+		return
+	}
+	for _, t := range d.Texts {
+		if t.blink != nil && t.blink() {
+			if d.blinkColor == WHITE {
+				d.print(t.row, t.altText, BLACK) // hide alt text
+				d.print(t.row, t.text, WHITE)    // show main text
+			} else {
+				d.print(t.row, t.text, BLACK)    // hide main text
+				d.print(t.row, t.altText, WHITE) // show alt text
+			}
+		}
+	}
+	d.blinkColor = toggleColor(d.blinkColor)
+	d.blinkCount = 5 // blink every 5th iteration (~500mS)
+}
+
+func toggleColor(c color.RGBA) color.RGBA {
+	if c == WHITE {
+		return BLACK
+	}
+	return WHITE
+}
+
+func (d *Display) print(row byte, text string, c color.RGBA) {
+	tinyfont.WriteLineRotated(&d.device, &proggy.TinySZ8pt7b, 14, 12+int16(row)*16, text, c, tinyfont.NO_ROTATION)
 }

@@ -20,7 +20,7 @@ const (
 )
 
 const (
-	radToMs = 500.0 / math.Pi
+	radToMs = 512.0 / math.Pi
 )
 
 const flashStoreTreshold = 10_000
@@ -51,7 +51,6 @@ func init() {
 
 	// Display
 	d = display.New()
-	d.SetText([2]string{"Head Tracker", Version + " @ysoldak"})
 	d.Configure()
 	go d.Run()
 
@@ -60,6 +59,9 @@ func init() {
 }
 
 func main() {
+
+	d.AddText(0, "Head Tracker")
+	d.AddText(1, Version+" @ysoldak")
 
 	// warm up IMU (1 sec)
 	for i := 0; i < 50; i++ {
@@ -73,22 +75,30 @@ func main() {
 	o.Reset()
 
 	// calibrate gyroscope (until stable)
-	d.SetText([2]string{"", "Calibrating..."})
+	d.RemoveText(nil)
+	d.SetTextBlink(d.AddText(1, "Calibrating   "), "Calibrating...", true)
+	prev := [3]int32{0, 0, 0}
 	directions := [3]int32{1, 1, 1}
 	maxCorrection := int32(2_000_000)
 	iter := uint16(0)
 	for {
 
 		for i, v := range o.Calibrate() {
-			if v == 0 {
+			if v == 0 && f.IsEmpty() {
 				v = maxCorrection // for better visualisation at start
 			}
-			d.Channels[i] = uint16(int32(d.Channels[i]) + directions[i])
-			max := (500 * abs(v)) / maxCorrection
-			if abs(1500-int32(d.Channels[i])) > max {
-				d.Channels[i] = uint16(1500 + (max-1)*directions[i])
+			max := abs(1000*v) / maxCorrection
+			value := prev[i] + directions[i]
+			if value < 0 {
+				value = 0
 				directions[i] *= -1
 			}
+			if value > max {
+				value = max
+				directions[i] *= -1
+			}
+			prev[i] = value
+			d.SetBar(byte(i), int16(value)/20, true)
 		}
 
 		stateMain(iter)
@@ -119,9 +129,11 @@ func main() {
 	go t.Run()
 
 	// switch display to normal mode
-	d.SetText([2]string{"", t.Address()})
-	d.Bluetooth = pinSelectPPM.Get() // high means Bluetooth
-	d.Stable = true
+	d.RemoveText(nil)
+	d.AddText(1, t.Address())
+	if pinSelectPPM.Get() { // high means Bluetooth
+		d.SetTextBlinkFunc(d.AddText(1, "  :  :  :  :  :  "), "", func() bool { return !t.Paired() })
+	}
 
 	// main loop
 	iter = 0
@@ -133,12 +145,11 @@ func main() {
 		}
 
 		o.Update()
-		for i, v := range o.Angles() {
-			a := angleToChannel(v)
-			t.SetChannel(i, a)
-			d.Channels[i] = a
+		for i, a := range o.Angles() {
+			c := angleToChannel(a)
+			t.SetChannel(i, c)
+			d.SetBar(byte(i), int16(1500-c)/10, false)
 		}
-		d.Paired = t.Paired()
 
 		// blink and trace
 		stateMain(iter)
