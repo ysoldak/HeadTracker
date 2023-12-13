@@ -2,7 +2,6 @@ package main
 
 import (
 	"math"
-	"runtime"
 	"time"
 
 	"github.com/ysoldak/HeadTracker/src/display"
@@ -18,7 +17,6 @@ const (
 	BLINK_WARM_COUNT = 125
 	BLINK_PARA_COUNT = 250
 	TRACE_COUNT      = 1000
-	MEMORY_COUNT     = -1 // disabled
 )
 
 const (
@@ -129,7 +127,6 @@ func main() {
 		stateMain(iter)
 		statePara(iter)
 		trace(iter)
-		memory(iter)
 
 		// wait
 		time.Sleep(PERIOD * time.Millisecond)
@@ -230,18 +227,5 @@ func trace(iter int) {
 		r, p, y := channels[0], channels[1], channels[2]
 		rc, pc, yc := o.Offsets()
 		println(time.Now().Unix(), ": ", t.Address(), " | ", Version, " [", r, ",", p, ",", y, "] (", rc, ",", pc, ",", yc, ")")
-	}
-}
-
-// to debug memory usage or force GC if needed, disabled by default
-func memory(iter int) {
-	if MEMORY_COUNT < 0 {
-		return
-	}
-	if iter%MEMORY_COUNT == 0 {
-		// runtime.GC()
-		ms := runtime.MemStats{}
-		runtime.ReadMemStats(&ms)
-		println("Used: ", ms.HeapInuse, " Free: ", ms.HeapIdle, " Meta: ", ms.GCSys)
 	}
 }
