@@ -46,12 +46,12 @@ func (imu *IMU) Configure() {
 
 func (imu *IMU) Read() (gx, gy, gz, ax, ay, az float64, err error) {
 	gxi, gyi, gzi, err := imu.device.ReadRotation()
-	for err != nil {
+	if err != nil {
 		println(err)
 		return 0, 0, 0, 0, 0, 0, err
 	}
 	axi, ayi, azi, err := imu.device.ReadAcceleration()
-	for err != nil {
+	if err != nil {
 		println(err)
 		return 0, 0, 0, 0, 0, 0, err
 	}
