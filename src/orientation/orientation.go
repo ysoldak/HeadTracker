@@ -46,11 +46,12 @@ func (o *Orientation) Reset() {
 }
 
 // Calibrate gyroscope
-func (o *Orientation) Calibrate() {
+func (o *Orientation) Calibrate() (corrections [3]int32) {
 	_, _, _, _, _, _, err := o.imu.Read()
 	if err != nil {
 		println(err.Error())
 	}
+	return o.imu.gyrCal.correctionLast
 }
 
 // Update orientation

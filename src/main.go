@@ -51,8 +51,7 @@ func init() {
 
 	// Display
 	d = display.New()
-	d.Version = Version
-
+	d.SetText([2]string{"Head Tracker", Version + " @ysoldak"})
 	d.Configure()
 	go d.Run()
 
@@ -74,10 +73,24 @@ func main() {
 	o.Reset()
 
 	// calibrate gyroscope (until stable)
+	d.SetText([2]string{"", "Calibrating..."})
+	directions := [3]int32{1, 1, 1}
+	maxCorrection := int32(2_000_000)
 	iter := uint16(0)
 	for {
-		o.Calibrate()
-		d.Paired = t.Paired()
+
+		for i, v := range o.Calibrate() {
+			if v == 0 {
+				v = maxCorrection // for better visualisation at start
+			}
+			d.Channels[i] = uint16(int32(d.Channels[i]) + directions[i])
+			max := (500 * abs(v)) / maxCorrection
+			if abs(1500-int32(d.Channels[i])) > max {
+				d.Channels[i] = uint16(1500 + (max-1)*directions[i])
+				directions[i] *= -1
+			}
+		}
+
 		stateMain(iter)
 		stateCalibration(iter)
 		trace(iter)
@@ -106,7 +119,7 @@ func main() {
 	go t.Run()
 
 	// switch display to normal mode
-	d.Address = t.Address()
+	d.SetText([2]string{"", t.Address()})
 	d.Bluetooth = pinSelectPPM.Get() // high means Bluetooth
 	d.Stable = true
 

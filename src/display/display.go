@@ -18,17 +18,19 @@ type Display struct {
 	blinkCount int
 	blinkColor color.RGBA
 
+	clear bool
+
 	Paired   bool
 	Stable   bool
-	Address  string
-	Version  string
+	Text     [2]string
 	Channels [3]uint16
 }
 
 func New() *Display {
 	return &Display{
+		clear:    true,
 		Paired:   false,
-		Address:  "Calibrating...",
+		Text:     [2]string{"", ""},
 		Channels: [3]uint16{1500, 1500, 1500},
 	}
 }
@@ -48,20 +50,20 @@ func (d *Display) Configure() {
 	d.device.ClearDisplay()
 }
 
+func (d *Display) SetText(text [2]string) {
+	d.Text = text
+	d.clear = true
+}
+
 func (d *Display) Run() {
-	d.showVersion()
-	d.showAddress()
-	clear := true
 	for {
-		if d.Stable {
-			if clear {
-				d.device.ClearDisplay()
-				d.showAddress()
-				clear = false
-			}
-			for i := 0; i < 3; i++ {
-				d.showValue(i)
-			}
+		if d.clear {
+			d.device.ClearDisplay()
+			d.showText()
+			d.clear = false
+		}
+		for i := 0; i < 3; i++ {
+			d.showValue(i)
 		}
 		if d.Bluetooth {
 			d.showPaired()
