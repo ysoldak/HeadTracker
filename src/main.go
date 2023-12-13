@@ -75,8 +75,12 @@ func main() {
 	o.Reset()
 
 	// calibrate gyroscope (until stable)
+	waitText := "Calibrating"
+	if !f.IsEmpty() {
+		waitText = "Loading" // secondary calibration is short, just show "Loading" in that case
+	}
 	d.RemoveText(nil)
-	d.SetTextBlink(d.AddText(1, "Calibrating   "), "Calibrating...", true)
+	d.SetTextBlink(d.AddText(1, waitText+"   "), waitText+"...", true)
 	prev := [3]int32{0, 0, 0}
 	directions := [3]int32{1, 1, 1}
 	maxCorrection := int32(2_000_000)
