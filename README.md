@@ -76,8 +76,8 @@ Also available now to [order ready to use on Etsy](https://www.etsy.com/se-en/li
 - **D10**: PPM signal pin, connect it to an audio jack tip and **GND** to the jack body
 - **SDA&SCL**: I2C communication pins, connect them to 128x32 SSD1306 screen
 
-<img src="doc/xiao-ble-wiring.jpg" title="XIAO with screen and button on DJI Goggles" height="400"/>
-<img src="doc/xiao-ble-wiring.png" title="XIAO with screen and button wiring diagram" height="400"/>
+<img src="doc/xiao-ble-wiring-battery.png" title="XIAO with screen, button and battery wiring diagram" width="100%"/>
+<img src="doc/xiao-ble-wiring-ext-power.png" title="XIAO with screen and button wiring diagram" width="100%"/>
 
 ## Supported boards
 
