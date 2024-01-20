@@ -15,9 +15,25 @@ import "machine"
 
 var (
 	pinChargeCurrent = machine.P0_13
+	pinRead          = machine.P0_14
+	pinVoltage       = machine.P0_31
+
+	adc machine.ADC
 )
 
 func initExtras() {
 	pinChargeCurrent.Configure(machine.PinConfig{Mode: machine.PinOutput})
 	pinChargeCurrent.Low() // enable charging at high current, 100mA
+
+	// Shall keep this low while reading voltage
+	pinRead.Configure(machine.PinConfig{Mode: machine.PinOutput})
+
+	// Battery sensor pin
+	adc = machine.ADC{Pin: pinVoltage}
+	adc.Configure(machine.ADCConfig{})
+}
+
+func batteryVoltage() (float64, error) {
+	pinRead.Low()
+	return float64(adc.Get()) / 7050, nil
 }
