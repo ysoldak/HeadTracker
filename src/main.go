@@ -2,6 +2,7 @@ package main
 
 import (
 	"math"
+	"strconv"
 	"time"
 
 	"github.com/ysoldak/HeadTracker/src/display"
@@ -60,7 +61,12 @@ func init() {
 
 func main() {
 
-	d.AddText(0, "Head Tracker")
+	batVolts, err := batteryVoltage()
+	batString := ""
+	if err == nil {
+		batString = strconv.FormatFloat(batVolts, 'f', 2, 64) + "V"
+	}
+	d.AddText(0, "Head Tracker "+batString)
 	d.AddText(1, Version+" @ysoldak")
 
 	// warm up IMU (1 sec)
