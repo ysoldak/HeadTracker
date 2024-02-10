@@ -8,6 +8,8 @@ _(For the case of this head tracker and [Micro Camera Gimbal](https://cults3d.co
 **Mixer weight pan**: 133%  
 **Mixer weight tilt**: 200%
 
+See [EthOS](EthOS.md) article for the full configuration.
+
 ---
 
 For the best experience with head tracking, you want your HT and camera be always aligned.
