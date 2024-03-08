@@ -18,9 +18,9 @@ type Orientation struct {
 	current mgl.Quat
 }
 
-func New() *Orientation {
+func New(imu *IMU) *Orientation {
 	return &Orientation{
-		imu:    NewIMU(),
+		imu:    imu,
 		offset: mgl.QuatIdent(),
 	}
 }
