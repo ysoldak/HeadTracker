@@ -63,3 +63,7 @@ func (imu *IMU) Read() (gx, gy, gz, ax, ay, az float64, err error) {
 	ax, ay, az = float64(-axi)/1000000, float64(ayi)/1000000, float64(azi)/1000000
 	return
 }
+
+func (imu *IMU) ReadTap() (tap bool) {
+	return false // TODO implemented tap detection on Nano 33 BLE
+}

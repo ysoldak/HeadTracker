@@ -29,6 +29,7 @@ const flashStoreTreshold = 10_000
 var (
 	d *display.Display
 	t trainer.Trainer
+	i *orientation.IMU
 	o *orientation.Orientation
 	f *Flash
 )
@@ -40,7 +41,8 @@ func init() {
 	initExtras()
 
 	// Orientation
-	o = orientation.New()
+	i = orientation.NewIMU()
+	o = orientation.New(i)
 	o.Configure(PERIOD * time.Millisecond)
 
 	// Trainer (Bluetooth or PPM)
@@ -149,9 +151,11 @@ func main() {
 	iter = 0
 	for {
 
-		if !pinResetCenter.Get() { // Low means button pressed => shall reset center
+		if !pinResetCenter.Get() || (iter%400 == 0 && i.ReadTap()) { // Button pressed OR [double] tap registered (shall not read register more frequently than double tap duration)
 			o.Reset()
-			continue
+			on(ledR)
+		} else {
+			off(ledR)
 		}
 
 		o.Update()

@@ -109,8 +109,14 @@ First, you shall [flash UF2 bootloader to the board](./doc/Nano33BLE.md). You on
 Then connect the board to your computer, double-tap on button and copy `ht_nano-33-ble_xxx.uf2` file to NANO33BOOT usb drive.
 
 ## Use head tracker
-Attach the board with flashed head tracker code to your FPV goggles.  
-Place your goggles on a solid surface and power the head tracker with 2 cell battery or 5v source. I use analog adaptor bay on my DJI goggles to source 5v. 
+Attach the head tracker to your FPV goggles.  
+Power the head tracker via USB, 2 cell battery or 5v source.  
+> Hint: I personally use analog adapter bay on my DJI V1 goggles to source 5v.  
+
+### Bare
+The head tracker is usable "bare", no extra accessories needed, not even a button.  
+To reset the orientation without a button, simply **double-tap** the head tracker.  
+> Hint: When the head tracker is mounted on your goggles directly, you can just double-tap your googles in any place to reset the orientation.
 
 ### LEDs
 On start, board shall blink continuously blue, red and green/orange leds.
@@ -119,12 +125,11 @@ On start, board shall blink continuously blue, red and green/orange leds.
 - Green/orange led indicates health of the head tracker and shall slowly blink during normal operation.
 
 ### Buttons
-The head tracker records initial orientation on power up, place your goggles accordingly.  
-Optionally, a **reset orientation** button can be wired to **D2** and **GND** pins.
-Keep **reset orientation** button pressed on power up to discard calibration parameters stored in flash memory.
+The head tracker records initial orientation on power up, place your goggles accordingly or reset orientation later by double-tapping the head tracker or by using a **reset orientation** button that can be wired to **D2** and **GND** pins.  
+Keep **reset orientation** button pressed on power up to **discard calibration parameters** stored in flash memory.
 
 ### Screen
-If you have a LED 128x32 screen added you your board (via I2C), the board's bluetooth address is displayed on it. Blinking ":" symbols indicate bluetooth connection status, like blue led. Upon start, while gyroscope is calibrating, you shall see head tracker version briefly on the screen. The version is then replaced by 3 horisonal bars, one for each axis: roll, pitch and yaw.
+If you have a LED `128x32` screen added you your board (via I2C), the board's bluetooth address is displayed on it. Blinking ":" symbols indicate bluetooth connection status, like blue led. Upon start, while gyroscope is calibrating, you shall see head tracker version briefly on the screen. The version is then replaced by 3 horisonal bars, one for each axis: roll, pitch and yaw.
 
 
 ## Connect to radio
