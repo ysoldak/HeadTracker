@@ -39,14 +39,14 @@ Don't feel DIY? Order the fully assembled head tracker with display and button f
 
 <table>
 <tr><td>
-<img src="case/XiaoBle1Closed.jpg" title="XIAO + SSD1306 128x32 on DJI Goggles" style="float: left;"/>
+<img src="case/DJI Integra Xiao Ble.jpg" title="XIAO on DJI Integra" style="float: right;"/>
 </td><td>
-<img src="case/XiaoBle1Open.jpg" title="XIAO + SSD1306 128x32 on DJI Goggles, wiring" style="float: right;"/>
+<img src="case/GogglesX Xiao Ble.jpg" title="XIAO on Walksnail Googles X" style="float: left;"/>
 </td></tr>
 <tr><td>
-<img src="case/Nano33BleOnGoggles.jpg" title="Nano 33 BLE on FatShark mounted on the left side" style="float: left;"/>
+<img src="case/BDI Adpater Xiao Ble Annotated.jpg" title="XIAO + SSD1306 128x32 on DJI Goggles" style="float: left;"/>
 </td><td>
-<img src="case/Nano33BleOpen.jpg" title="Nano 33 BLE on FatShark, wiring" style="float: right;"/>
+<img src="case/BDI Adpater Xiao Ble Open.jpg" title="XIAO + SSD1306 128x32 on DJI Goggles, wiring" style="float: right;"/>
 </td></tr>
 </table>
 
