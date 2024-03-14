@@ -11,7 +11,7 @@ endif
 
 # --- Common targets ---
 
-VERSION := $(shell git describe --tags)
+VERSION ?= $(shell git describe --tags)
 LD_FLAGS := -ldflags="-X 'main.Version=$(VERSION)'" # https://www.digitalocean.com/community/tutorials/using-ldflags-to-set-version-information-for-go-applications
 
 clean:
