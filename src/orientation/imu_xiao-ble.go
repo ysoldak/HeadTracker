@@ -51,8 +51,8 @@ func (imu *IMU) Configure() {
 
 	tapConfig := map[byte]byte{
 		TAP_CFG:     0x8F, // interrupts enable + tap all axes + latch (saves the state of the interrupt until register is read)
-		TAP_THS_6D:  0x01, // tap threshold
-		INT_DUR2:    0xFF, // tap sensing params: duration = 16*([7:4]+1)*1.2ms, quiet = 2*([3:2]+1)*1.2ms, shock = 4*([1:0]+1)*1.2ms => 0xFF = 307.2ms, 10.8ms, 4.8ms
+		TAP_THS_6D:  0x02, // tap threshold
+		INT_DUR2:    0xAF, // tap sensing params: duration = 16*([7:4]+1)*1.2ms, quiet = 2*([3:2]+1)*1.2ms, shock = 4*([1:0]+1)*1.2ms => 0xAF = 211.2ms, 10.8ms, 4.8ms
 		WAKE_UP_THS: 0x80, // enable double tap events
 		MD1_CFG:     0x08, // route double tap events to INT1 (requited for the latch to work)
 	}
