@@ -23,7 +23,7 @@ Head Tracker runs on [Seeeduino XIAO BLE Sense](https://www.seeedstudio.com/Seee
 - **Calibrate and Setup**  
   _nothing to do here, skip to the next item_
 - **HAVE FUN!**  
-  _and consider installing our own [fpv camera gimbal](https://cults3d.com/en/3d-model/gadget/micro-camera-gimbal-ysoldak) to your favourite model!_
+  _and consider installing our own [fpv camera gimbal](https://cults3d.com/en/3d-model/gadget/micro-camera-gimbal-ysoldak) on your favourite model!_
 
 ## Video Tutorials
 - [Connect the head tracker wirelessly to your radio](https://youtu.be/b292hyC5Ctk?t=280)  
@@ -92,7 +92,7 @@ _Recommended for users w/o experience in embedded programming._
 **Nano 33 BLE** is a larger board from Arduino that shall be easier to source. There are two variants of this board: "Nano 33 BLE" and "Nano 33 BLE Sense" -- both will work for this project. This board has no UF2 bootloader pre-flashed and a debug probe is required to flash UF2 bootloader to it.  
 _Recommended for advanced users who have a debug probe (JLink or CMSIS-DAP compatible) and can use it._
 
-For a long time, Nano 33 BLE was the only board supported. It has an additional sensor, magnetometer, that head trackers usually use to eliminate yaw drift. In practice, however, magnetometer adds more problems than solves. Magnetometer is very sensitive to environment and tricky to calibrate properly. In this project we do not use magnetometer and have a good zero-configuration automatic continuous gyro calibration instead to solve the drift problem. Already after first 5 seconds the calibration is good enough to stop the drift.  
+For a long time, Nano 33 BLE was the only board supported. It has an additional sensor, magnetometer, that head trackers usually use to eliminate pan drift. In practice, however, magnetometer adds more problems than solves. Magnetometer is very sensitive to environment and tricky to calibrate properly. In this project we do not use magnetometer and have a good zero-configuration automatic continuous gyro calibration instead to solve the drift problem. Already after first 5 seconds the calibration is good enough to stop the drift.  
 
 As of now, Nano 33 BLE board does not provide any benefit over XIAO BLE Sense. Instead, the later board is actually easier to use, thanks to pre-flashed UF2 bootloader and smaller size. In the future, just for fun, magnetometer support can be added but only if we can make calibration automatic and transparent for the user.
 
@@ -110,7 +110,7 @@ Then connect the board to your computer, double-tap on button and copy `ht_nano-
 
 ## Use head tracker
 Attach the head tracker to your FPV goggles.  
-Power the head tracker via USB, 2 cell battery or 5v source.  
+Power the head tracker via USB, 1 cell lipo battery or 5v source.  
 > Hint: I personally use analog adapter bay on my DJI V1 goggles to source 5v.  
 
 ### Bare
@@ -128,8 +128,8 @@ On start, board shall blink continuously blue, red and green/orange leds.
 The head tracker records initial orientation on power up, place your goggles accordingly or reset orientation later by double-tapping the head tracker or by using a **reset orientation** button that can be wired to **D2** and **GND** pins.  
 Keep **reset orientation** button pressed on power up to **discard calibration parameters** stored in flash memory.
 
-### Screen
-If you have a LED `128x32` screen added you your board (via I2C), the board's bluetooth address is displayed on it. Blinking ":" symbols indicate bluetooth connection status, like blue led. Upon start, while gyroscope is calibrating, you shall see head tracker version briefly on the screen. The version is then replaced by 3 horisonal bars, one for each axis: roll, pitch and yaw.
+### Display
+If you have a LED `128x32` display added you your board (via I2C), the board's bluetooth address is displayed on it. Blinking ":" symbols indicate bluetooth connection status, like blue led. Upon start, while gyroscope is calibrating, you shall see head tracker version briefly on the screen. The version is then replaced by 3 horisonal bars, one for each axis: pan, tilt and roll.
 
 
 ## Connect to radio
@@ -138,7 +138,7 @@ HeadTracker can work either in wireless (Bluetooth) or wired (PPM) mode.
 Bluetooth mode is active by default.
 
 ### Bluetooth
-- Flash your board with a release file
+- Flash your board with a [release file](https://github.com/ysoldak/HeadTracker/releases)
 - Connect to the board with a **Serial console** and make note of the board **address** (like: `7b:f5:1e:35:de:94`)
 - [SSD1306 LED display](https://www.amazon.com/s?k=ssd1306+128x32+oled+i2c) can be connected (via I2C) to the board; in such case board address displyed there too
 - In your radio, select Trainer mode **"Master/BT"**, wait a bit and click "[Discover]"
