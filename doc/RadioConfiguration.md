@@ -8,6 +8,10 @@ _(For the case of this head tracker and [Micro Camera Gimbal](https://cults3d.co
 **Mixer weight pan**: 133%  
 **Mixer weight tilt**: 200%
 
+**Attention:** Output ranges must be set in either your Radio or model's Flight Controller, not both!  
+If you connect yout pan and tilt servos directly to model's receiver, set output ranges in your radio.  
+When pan and tilt servos connected to a Flight Controller, set respective ranges in FC's Outputs tab, leaving radio outputs be 100%.
+
 See [EthOS](EthOS.md) article for the full configuration.
 
 ---

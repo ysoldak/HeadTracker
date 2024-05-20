@@ -5,7 +5,7 @@ Full configuration for the HeadTracker and [MicroCameraGimbal](https://cults3d.c
 Following assumes you have HT pan servo connected to CH13 and tilt servo to CH14. CH15 is for roll, typically unused.  
 HeadTracker runs on XIAO BLE board laying flat on goggles with USB-C facing forward. See [Walksnail Goggles X HeadTracker Case](https://www.etsy.com/se-en/listing/1660848137/head-tracker-for-walksnail-avatar).  
 
-Note: For HeadTracker mounted sideways "HT TrainerX" mixers will be different, since different trainer channels corespond to different HT axes in that case.  
+Note: For HeadTracker mounted sideways `HT TrainerN` mixers will be different, since different trainer channels corespond to different HT axes in that case.  
 See DJI V1/V2 with BDI Adapter and HT mounted in analog bay.
 
 See also [deep dive article](RadioConfiguration.md) if you want to understand where that % for mixers and outputs come from.
@@ -91,6 +91,10 @@ Output3: CH15(TR1)
 
 ## Outputs
 
+**Attention:** Output ranges must be set in either your Radio or model's Flight Controller, not both!  
+If you connect yout pan and tilt servos directly to model's receiver, set output ranges in your radio.  
+When pan and tilt servos connected to a Flight Controller, set respective ranges in FC's Outputs tab, leaving radio outputs be 100%.
+
 ### CH13 TR3
 ```
 Name: TR3
@@ -101,6 +105,6 @@ Max: 150%
 ## CH14 TR2
 ```
 Name: TR2
-Min: -130%
-Max: 130%
+Min: -133%
+Max: 133%
 ```
