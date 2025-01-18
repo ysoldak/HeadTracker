@@ -126,7 +126,7 @@ func (t *Para) Configure() {
 	addr, _ := t.adapter.Address()
 	t.address = addr.MAC.String()
 
-	t.adapter.SetConnectHandler(func(device bluetooth.Address, connected bool) {
+	t.adapter.SetConnectHandler(func(device bluetooth.Device, connected bool) {
 		if connected {
 			t.sendDelay = 1 * time.Second
 			t.paired = true
