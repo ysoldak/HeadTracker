@@ -1,0 +1,25 @@
+{
+  "name": "TinyGo",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "runArgs": ["--platform=linux/amd64", "--userns=keep-id"],
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "extensions.verifySignature": false
+      },
+      "extensions": [
+        "tinygo.vscode-tinygo",
+        "ms-vscode.makefile-tools",
+        "mhutchie.git-graph"
+      ]
+    }
+  },
+  "containerUser": "vscode",
+  "containerEnv": {
+    "HOME": "/home/vscode"
+  },
+  "remoteUser": "vscode"
+}
