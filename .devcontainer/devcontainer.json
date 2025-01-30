@@ -13,7 +13,8 @@
       "extensions": [
         "tinygo.vscode-tinygo",
         "ms-vscode.makefile-tools",
-        "mhutchie.git-graph"
+        "mhutchie.git-graph",
+        "golang.go"
       ]
     }
   },

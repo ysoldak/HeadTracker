@@ -10,7 +10,7 @@ RUN \
   wget https://go.dev/dl/go1.23.5.linux-amd64.tar.gz && \
   tar -C /usr/local -xzf go1.23.5.linux-amd64.tar.gz && \
   rm go1.23.5.linux-amd64.tar.gz && \
-  echo 'export PATH=$PATH:/usr/local/go/bin' >> /root/.bashrc
+  echo 'export PATH=$PATH:/usr/local/go/bin' >> /home/vscode/.bashrc
 
 RUN \
   wget https://github.com/tinygo-org/tinygo/releases/download/v0.35.0/tinygo_0.35.0_amd64.deb && \
