@@ -44,9 +44,9 @@ func (imu *IMU) Configure() {
 	imu.device = lsm6ds3tr.New(machine.I2C1)
 	imu.device.Configure(lsm6ds3tr.Configuration{
 		AccelRange:      lsm6ds3tr.ACCEL_4G,     // 4g
-		AccelSampleRate: lsm6ds3tr.ACCEL_SR_833, // every ~1.2ms
+		AccelSampleRate: lsm6ds3tr.ACCEL_SR_104, // every ~9.6ms
 		GyroRange:       lsm6ds3tr.GYRO_500DPS,  // 500 deg/s
-		GyroSampleRate:  lsm6ds3tr.GYRO_SR_833,  // every ~1.2ms
+		GyroSampleRate:  lsm6ds3tr.GYRO_SR_104,  // every ~9.6ms
 	})
 
 	tapConfig := map[byte]byte{
