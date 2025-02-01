@@ -11,6 +11,10 @@ import (
 const radToDeg = 180 / math.Pi // 57.29578
 const degToRad = 1 / radToDeg  // 0.0174533
 
+// Rule of thumb: increasing beta leads to (a) faster bias corrections, (b) higher sensitiveness to lateral accelerations.
+// https://stackoverflow.com/questions/47589230/what-is-the-best-beta-value-in-madgwick-filter
+const madgwickBeta = 0.025
+
 type Orientation struct {
 	imu     *IMU
 	fusion  ahrs.Madgwick
@@ -27,7 +31,7 @@ func New(imu *IMU) *Orientation {
 
 func (o *Orientation) Configure(period time.Duration) {
 	o.imu.Configure()
-	o.fusion = ahrs.NewMadgwick(0.025, float64(time.Second/period))
+	o.fusion = ahrs.NewMadgwick(madgwickBeta, float64(time.Second/period))
 }
 
 // Reset orientation for sensor fusion algoritm

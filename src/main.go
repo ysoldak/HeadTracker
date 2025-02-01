@@ -2,6 +2,7 @@ package main
 
 import (
 	"math"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -13,7 +14,7 @@ import (
 var Version string
 
 const (
-	PERIOD           = 20
+	PERIOD           = 10
 	BLINK_MAIN_COUNT = 500
 	BLINK_WARM_COUNT = 125
 	BLINK_PARA_COUNT = 250
@@ -32,6 +33,10 @@ var (
 	i *orientation.IMU
 	o *orientation.Orientation
 	f *Flash
+)
+
+var (
+	tickPeriod *time.Ticker
 )
 
 func init() {
@@ -59,6 +64,8 @@ func init() {
 
 	f = &Flash{}
 
+	tickPeriod = time.NewTicker(PERIOD * time.Millisecond)
+
 }
 
 func main() {
@@ -74,7 +81,7 @@ func main() {
 	// warm up IMU (1 sec)
 	for i := 0; i < 50; i++ {
 		o.Calibrate()
-		time.Sleep(PERIOD * time.Millisecond)
+		<-tickPeriod.C
 	}
 
 	flashLoad()
@@ -170,8 +177,11 @@ func main() {
 		statePara(iter)
 		trace(iter)
 
+		// memory
+		runtime.GC() // run garbage collector often to avoid long pauses
+
 		// wait
-		time.Sleep(PERIOD * time.Millisecond)
+		<-tickPeriod.C
 		iter += PERIOD
 		iter %= 10_000
 	}
@@ -263,11 +273,17 @@ func statePara(iter uint16) {
 	}
 }
 
+var ms = runtime.MemStats{}
+var traceTime = time.Now()
+
 func trace(iter uint16) {
 	if iter%TRACE_COUNT == 0 { // print out state
+		timeDiff := time.Since(traceTime)
+		traceTime = time.Now()
+		runtime.ReadMemStats(&ms)
 		channels := t.Channels()
 		r, p, y := channels[0], channels[1], channels[2]
 		rc, pc, yc := o.Offsets()
-		println(time.Now().Unix(), ": ", t.Address(), " | ", Version, " [", r, ",", p, ",", y, "] (", rc, ",", pc, ",", yc, ")")
+		println(time.Now().Unix(), "|", t.Address(), "|", Version, "| [", r, ",", p, ",", y, "] (", rc, ",", pc, ",", yc, ") |", ms.HeapInuse, "/", timeDiff.Milliseconds()-TRACE_COUNT, "ms")
 	}
 }
