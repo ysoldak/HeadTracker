@@ -32,7 +32,7 @@ func NewIMU() *IMU {
 func (imu *IMU) Configure() {
 	// Configure I2C
 	machine.I2C1.Configure(machine.I2CConfig{
-		Frequency: machine.TWI_FREQ_100KHZ,
+		Frequency: 100 * machine.KHz,
 		SDA:       machine.SDA1_PIN,
 		SCL:       machine.SCL1_PIN,
 	})

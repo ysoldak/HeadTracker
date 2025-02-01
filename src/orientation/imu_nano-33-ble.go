@@ -23,7 +23,7 @@ func NewIMU() *IMU {
 func (imu *IMU) Configure() {
 	// Configure I2C
 	machine.I2C1.Configure(machine.I2CConfig{
-		Frequency: machine.TWI_FREQ_100KHZ,
+		Frequency: 100 * machine.KHz,
 		SDA:       machine.SDA1_PIN,
 		SCL:       machine.SCL1_PIN,
 	})
@@ -35,9 +35,9 @@ func (imu *IMU) Configure() {
 	imu.device = lsm9ds1.New(machine.I2C1)
 	imu.device.Configure(lsm9ds1.Configuration{
 		AccelRange:      lsm9ds1.ACCEL_4G,
-		AccelSampleRate: lsm9ds1.ACCEL_SR_952,
+		AccelSampleRate: lsm9ds1.ACCEL_SR_119,
 		GyroRange:       lsm9ds1.GYRO_500DPS,
-		GyroSampleRate:  lsm9ds1.GYRO_SR_952,
+		GyroSampleRate:  lsm9ds1.GYRO_SR_119,
 		MagRange:        lsm9ds1.MAG_4G,
 		MagSampleRate:   lsm9ds1.MAG_SR_80,
 	})
