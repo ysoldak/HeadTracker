@@ -44,15 +44,15 @@ func (imu *IMU) Configure() {
 	imu.device = lsm6ds3tr.New(machine.I2C1)
 	imu.device.Configure(lsm6ds3tr.Configuration{
 		AccelRange:      lsm6ds3tr.ACCEL_4G,     // 4g
-		AccelSampleRate: lsm6ds3tr.ACCEL_SR_104, // every ~9.6ms
+		AccelSampleRate: lsm6ds3tr.ACCEL_SR_208, // every ~4.8ms
 		GyroRange:       lsm6ds3tr.GYRO_500DPS,  // 500 deg/s
-		GyroSampleRate:  lsm6ds3tr.GYRO_SR_104,  // every ~9.6ms
+		GyroSampleRate:  lsm6ds3tr.GYRO_SR_208,  // every ~4.8ms
 	})
 
 	tapConfig := map[byte]byte{
 		TAP_CFG:     0x8F, // interrupts enable + tap all axes + latch (saves the state of the interrupt until register is read)
 		TAP_THS_6D:  0x02, // tap threshold
-		INT_DUR2:    0xAF, // tap sensing params: duration = 16*([7:4]+1)*1.2ms, quiet = 2*([3:2]+1)*1.2ms, shock = 4*([1:0]+1)*1.2ms => 0xAF = 211.2ms, 10.8ms, 4.8ms
+		INT_DUR2:    0x20, // tap sensing params: duration = 16*([7:4]+1)*4.8ms, quiet = 2*([3:2]+1)*4.8ms, shock = 4*([1:0]+1)*4.8ms => 0x20 = 230.4ms, 9.6ms, 19.2ms
 		WAKE_UP_THS: 0x80, // enable double tap events
 		MD1_CFG:     0x08, // route double tap events to INT1 (requited for the latch to work)
 	}
