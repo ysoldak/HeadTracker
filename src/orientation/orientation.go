@@ -1,11 +1,12 @@
 package orientation
 
 import (
-	"math"
 	"time"
 
-	mgl "github.com/go-gl/mathgl/mgl64"
-	"github.com/tracktum/go-ahrs"
+	math "github.com/chewxy/math32"
+
+	"github.com/aykevl/fusion"
+	mgl "github.com/go-gl/mathgl/mgl32"
 )
 
 const radToDeg = 180 / math.Pi // 57.29578
@@ -17,7 +18,8 @@ const madgwickBeta = 0.025
 
 type Orientation struct {
 	imu     *IMU
-	fusion  ahrs.Madgwick
+	fusion  fusion.Madgwick
+	period  time.Duration
 	offset  mgl.Quat
 	current mgl.Quat
 }
@@ -31,7 +33,8 @@ func New(imu *IMU) *Orientation {
 
 func (o *Orientation) Configure(period time.Duration) {
 	o.imu.Configure()
-	o.fusion = ahrs.NewMadgwick(madgwickBeta, float64(time.Second/period))
+	o.fusion = fusion.NewMadgwick(madgwickBeta)
+	o.period = period
 }
 
 // Reset orientation for sensor fusion algoritm
@@ -46,7 +49,7 @@ func (o *Orientation) Reset() {
 	start := mgl.Vec3{ax, ay, az}
 	dest := mgl.Vec3{0, 0, 1}
 	o.offset = mgl.QuatBetweenVectors(start, dest)
-	o.fusion.Quaternions = [4]float64{1, 0, 0, 0}
+	o.fusion.Quat = mgl.QuatIdent()
 }
 
 // Calibrate gyroscope
@@ -70,16 +73,12 @@ func (o *Orientation) Update() {
 	a := o.offset.Rotate(mgl.Vec3{ax, ay, az})
 	g := o.offset.Rotate(mgl.Vec3{gx, gy, gz})
 	// apply fusion
-	q := o.fusion.Update6D(
-		g[0]*degToRad, g[1]*degToRad, g[2]*degToRad,
-		a[0], a[1], a[2],
-	)
-	o.current.W = q[0]
-	o.current.V = mgl.Vec3{q[1], q[2], q[3]}
+	o.fusion.Update(g.Mul(degToRad), a, o.period)
+	o.current = o.fusion.Quat
 }
 
 // Angles in radians
-func (o *Orientation) Angles() (angles [3]float64) {
+func (o *Orientation) Angles() (angles [3]float32) {
 	q := o.current
 	angles[0] = math.Atan2(2*(q.W*q.V.X()+q.V.Y()*q.V.Z()), 1-2*(q.V.X()*q.V.X()+q.V.Y()*q.V.Y()))
 	angles[1] = math.Asin(2 * (q.W*q.V.Y() - q.V.X()*q.V.Z()))

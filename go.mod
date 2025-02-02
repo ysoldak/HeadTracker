@@ -3,8 +3,9 @@ module github.com/ysoldak/HeadTracker
 go 1.23
 
 require (
+	github.com/chewxy/math32 v1.11.1
 	github.com/go-gl/mathgl v1.2.0
-	github.com/tracktum/go-ahrs v1.0.0
+	github.com/aykevl/fusion v0.0.0-20190713195334-aab2c0e60290
 	tinygo.org/x/bluetooth v0.11.0
 	tinygo.org/x/drivers v0.29.0
 	tinygo.org/x/tinydraw v0.4.0

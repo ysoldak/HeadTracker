@@ -192,7 +192,7 @@ func main() {
 
 // --- Core ----
 
-func angleToChannel(angle float64) uint16 {
+func angleToChannel(angle float32) uint16 {
 	result := uint16(1500 + angle*radToMs)
 	if result < 988 {
 		return 988
