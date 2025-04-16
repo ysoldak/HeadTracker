@@ -3,8 +3,8 @@ package main
 import "machine"
 
 var (
-	pinDebugMain   = machine.D0
-	pinDebugData   = machine.D1
+	pinDebugMain   = machine.P0_02
+	pinDebugData   = machine.P0_03
 	pinResetCenter = machine.D2
 	pinSelectPPM   = machine.D8
 	pinOutputPPM   = machine.D10
