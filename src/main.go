@@ -60,7 +60,6 @@ func init() {
 	// Display
 	d = display.New()
 	d.Configure()
-	go d.Run()
 
 	f = &Flash{}
 
@@ -145,7 +144,7 @@ func main() {
 
 	// enable trainer after flash operations (bluetooth conflicts with flash)
 	t.Configure()
-	go t.Run()
+	t.Start()
 
 	// switch display to normal mode
 	d.RemoveText(nil)
@@ -156,7 +155,9 @@ func main() {
 
 	// main loop
 	iter = 0
-	for {
+	for range tickPeriod.C {
+
+		pinDebugMain.Set(!pinDebugMain.Get())
 
 		if !pinResetCenter.Get() || (iter%400 == 0 && i.ReadTap()) { // Button pressed OR [double] tap registered (shall not read register more frequently than double tap duration)
 			o.Reset()
@@ -166,22 +167,26 @@ func main() {
 		}
 
 		o.Update()
-		for i, a := range o.Angles() {
-			c := angleToChannel(a)
-			t.SetChannel(i, c)
-			d.SetBar(byte(i), int16(1500-c)/10, false)
+
+		pinDebugData.High()
+		if iter%20 == 0 {
+			for i, a := range o.Angles() {
+				c := angleToChannel(a)
+				t.SetChannel(i, c)
+				d.SetBar(byte(i), int16(1500-c)/10, false)
+			}
+			t.Update()
+			d.Update()
+		} else {
+			runtime.GC() // run garbage collector often to avoid long pauses
 		}
+		pinDebugData.Low()
 
 		// blink and trace
 		stateMain(iter)
 		statePara(iter)
 		trace(iter)
 
-		// memory
-		runtime.GC() // run garbage collector often to avoid long pauses
-
-		// wait
-		<-tickPeriod.C
 		iter += PERIOD
 		iter %= 10_000
 	}
@@ -273,17 +278,11 @@ func statePara(iter uint16) {
 	}
 }
 
-var ms = runtime.MemStats{}
-var traceTime = time.Now()
-
 func trace(iter uint16) {
 	if iter%TRACE_COUNT == 0 { // print out state
-		timeDiff := time.Since(traceTime)
-		traceTime = time.Now()
-		runtime.ReadMemStats(&ms)
 		channels := t.Channels()
 		r, p, y := channels[0], channels[1], channels[2]
 		rc, pc, yc := o.Offsets()
-		println(time.Now().Unix(), "|", t.Address(), "|", Version, "| [", r, ",", p, ",", y, "] (", rc, ",", pc, ",", yc, ") |", ms.HeapInuse, "/", timeDiff.Milliseconds()-TRACE_COUNT, "ms")
+		println("HT", Version, "|", t.Address(), "| [", r, ",", p, ",", y, "] (", rc, ",", pc, ",", yc, ")")
 	}
 }

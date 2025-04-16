@@ -19,7 +19,7 @@ type Para struct {
 	fff6Handle bluetooth.Characteristic
 
 	buffer    []byte
-	sendDelay time.Duration
+	sendAfter time.Time
 
 	paired   bool
 	address  string
@@ -128,7 +128,9 @@ func (t *Para) Configure() {
 
 	t.adapter.SetConnectHandler(func(device bluetooth.Device, connected bool) {
 		if connected {
-			t.sendDelay = 1 * time.Second
+			t.sendAfter = time.Now().Add(1 * time.Second) // wait for 1 second before sending data
+			setSoftDeviceSystemAttributes()               // force enable notify for fff6
+			t.fff6Handle.Write(bootBuffer)                // send '\r\n', it helps remote master switch to receiveTrainer state
 			t.paired = true
 		} else {
 			t.paired = false
@@ -137,27 +139,22 @@ func (t *Para) Configure() {
 
 }
 
-func (t *Para) Run() {
-	period := 20 * time.Millisecond
-	for {
-		time.Sleep(period)
-		if !t.paired {
-			continue
-		}
-		if t.sendDelay > 0 {
-			if t.sendDelay == 1*time.Second {
-				setSoftDeviceSystemAttributes() // force enable notify for fff6
-				t.fff6Handle.Write(bootBuffer)  // send '\r\n', it helps remote master switch to receiveTrainer state
-			}
-			t.sendDelay -= period
-			continue
-		}
-		size := t.encode()
-		n, err := t.fff6Handle.Write(t.buffer[:size])
-		if err != nil {
-			println(err.Error())
-			println(n)
-		}
+func (t *Para) Start() {
+	// no-op
+}
+
+func (t *Para) Update() {
+	if !t.paired {
+		return
+	}
+	if !time.Now().After(t.sendAfter) {
+		return
+	}
+	size := t.encode()
+	n, err := t.fff6Handle.Write(t.buffer[:size])
+	if err != nil {
+		println(err.Error())
+		println(n)
 	}
 }
 
