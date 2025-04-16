@@ -47,7 +47,7 @@ func New() *Display {
 
 func (d *Display) Configure() {
 	machine.I2C0.Configure(machine.I2CConfig{
-		Frequency: machine.TWI_FREQ_400KHZ,
+		Frequency: 400 * machine.KHz,
 		SDA:       machine.SDA0_PIN,
 		SCL:       machine.SCL0_PIN,
 	})
