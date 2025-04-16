@@ -2,7 +2,8 @@ package trainer
 
 type Trainer interface {
 	Configure()
-	Run()
+	Start()
+	Update()
 	Paired() bool
 	Address() string
 	Channels() []uint16
