@@ -22,6 +22,8 @@ var (
 )
 
 func initExtras() {
+	machine.InitADC()
+
 	pinChargeCurrent.Configure(machine.PinConfig{Mode: machine.PinOutput})
 	pinChargeCurrent.Low() // enable charging at high current, 100mA
 
