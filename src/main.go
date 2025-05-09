@@ -95,7 +95,7 @@ func main() {
 		waitText = "Loading" // secondary calibration is short, just show "Loading" in that case
 	}
 	d.RemoveText(nil)
-	d.SetTextBlink(d.AddText(1, waitText+"   "), waitText+"...", true)
+	d.SetTextBlinkFunc(d.AddText(1, waitText+"   "), waitText+"...", func() bool { return true })
 	d.Update()
 	prev := [3]int32{0, 0, 0}
 	directions := [3]int32{1, 1, 1}

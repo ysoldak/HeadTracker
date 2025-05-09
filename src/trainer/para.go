@@ -18,7 +18,7 @@ type Para struct {
 	adv        *bluetooth.Advertisement
 	fff6Handle bluetooth.Characteristic
 
-	buffer    []byte
+	buffer    [20]byte
 	sendAfter time.Time
 
 	paired   bool
@@ -29,7 +29,6 @@ type Para struct {
 func NewPara() *Para {
 	return &Para{
 		adapter:  bluetooth.DefaultAdapter,
-		buffer:   make([]byte, 20),
 		paired:   false,
 		address:  "B1:6B:00:B5:BA:BE",
 		channels: [8]uint16{1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500},
