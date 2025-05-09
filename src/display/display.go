@@ -92,16 +92,6 @@ func (d *Display) AddText(row byte, text string) *Text {
 	return t
 }
 
-func (d *Display) SetTextBlink(text *Text, other string, blink bool) *Text {
-	for _, t := range d.Texts {
-		if t == text {
-			t.altText = other
-			t.blink = func() bool { return blink }
-		}
-	}
-	return text
-}
-
 func (d *Display) SetTextBlinkFunc(text *Text, other string, blink func() bool) *Text {
 	for _, t := range d.Texts {
 		if t == text {

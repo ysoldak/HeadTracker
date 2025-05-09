@@ -19,10 +19,10 @@ clean:
 
 build:
 	@mkdir -p build
-	tinygo build $(LD_FLAGS) -target=$(TARGET) -size=$(SIZE) -opt=z -print-allocs=main -o ./build/$(FILE) ./src
+	tinygo build $(LD_FLAGS) -target=$(TARGET) -size=$(SIZE) -opt=z -print-allocs=HeadTracker -o ./build/$(FILE) ./src
 
 flash:
-	tinygo flash $(LD_FLAGS) -target=$(TARGET) -size=$(SIZE) -opt=z -print-allocs=main ./src
+	tinygo flash $(LD_FLAGS) -target=$(TARGET) -size=$(SIZE) -opt=z -print-allocs=HeadTracker ./src
 
 monitor:
 	tinygo monitor -target=$(TARGET)
