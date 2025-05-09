@@ -76,6 +76,7 @@ func main() {
 	}
 	d.AddText(0, "Head Tracker "+batString)
 	d.AddText(1, Version+" @ysoldak")
+	d.Update()
 
 	// warm up IMU (1 sec)
 	for i := 0; i < 50; i++ {
@@ -95,10 +96,12 @@ func main() {
 	}
 	d.RemoveText(nil)
 	d.SetTextBlink(d.AddText(1, waitText+"   "), waitText+"...", true)
+	d.Update()
 	prev := [3]int32{0, 0, 0}
 	directions := [3]int32{1, 1, 1}
 	maxCorrection := int32(2_000_000)
 	iter := uint16(0)
+	stopTime := time.Now().Add(3 * time.Second)
 	for {
 
 		for i, v := range o.Calibrate() {
@@ -127,7 +130,11 @@ func main() {
 		iter++
 		iter %= 10_000
 
-		if iter > 3000 && !f.IsEmpty() { // when had some calibration already, force it if was not able to find better quickly
+		if iter%10 == 0 {
+			d.Update()
+		}
+
+		if time.Now().After(stopTime) && !f.IsEmpty() { // when had some calibration already, force it if was not able to find better quickly
 			o.SetOffsets(f.roll, f.pitch, f.yaw)
 			o.SetStable(true)
 		}
@@ -152,6 +159,7 @@ func main() {
 	if pinSelectPPM.Get() { // high means Bluetooth
 		d.SetTextBlinkFunc(d.AddText(1, "  :  :  :  :  :  "), "", func() bool { return !t.Paired() })
 	}
+	d.Update()
 
 	// main loop
 	iter = 0
