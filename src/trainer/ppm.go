@@ -58,8 +58,12 @@ func (ppm *PPM) Configure() {
 	configurePpi()
 }
 
-func (ppm *PPM) Run() {
+func (ppm *PPM) Start() {
 	ppmTimerLow.TASKS_START.Set(1)
+}
+
+func (ppm *PPM) Update() {
+	// no-op
 }
 
 func (ppm *PPM) Paired() bool {

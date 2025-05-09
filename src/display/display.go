@@ -3,7 +3,6 @@ package display
 import (
 	"image/color"
 	"machine"
-	"time"
 
 	"tinygo.org/x/drivers/ssd1306"
 	"tinygo.org/x/tinydraw"
@@ -119,13 +118,10 @@ func (d *Display) SetBar(row byte, value int16, bidir bool) {
 	d.Bars[row].bidir = bidir
 }
 
-func (d *Display) Run() {
-	for {
-		d.bars()
-		d.blink()
-		d.device.Display()
-		time.Sleep(100 * time.Millisecond)
-	}
+func (d *Display) Update() {
+	d.bars()
+	d.blink()
+	d.device.Display()
 }
 
 func (d *Display) bars() {

@@ -60,7 +60,6 @@ func init() {
 	// Display
 	d = display.New()
 	d.Configure()
-	go d.Run()
 
 	f = &Flash{}
 
@@ -77,6 +76,7 @@ func main() {
 	}
 	d.AddText(0, "Head Tracker "+batString)
 	d.AddText(1, Version+" @ysoldak")
+	d.Update()
 
 	// warm up IMU (1 sec)
 	for i := 0; i < 50; i++ {
@@ -96,10 +96,12 @@ func main() {
 	}
 	d.RemoveText(nil)
 	d.SetTextBlink(d.AddText(1, waitText+"   "), waitText+"...", true)
+	d.Update()
 	prev := [3]int32{0, 0, 0}
 	directions := [3]int32{1, 1, 1}
 	maxCorrection := int32(2_000_000)
 	iter := uint16(0)
+	stopTime := time.Now().Add(3 * time.Second)
 	for {
 
 		for i, v := range o.Calibrate() {
@@ -128,7 +130,11 @@ func main() {
 		iter++
 		iter %= 10_000
 
-		if iter > 3000 && !f.IsEmpty() { // when had some calibration already, force it if was not able to find better quickly
+		if iter%10 == 0 {
+			d.Update()
+		}
+
+		if time.Now().After(stopTime) && !f.IsEmpty() { // when had some calibration already, force it if was not able to find better quickly
 			o.SetOffsets(f.roll, f.pitch, f.yaw)
 			o.SetStable(true)
 		}
@@ -145,7 +151,7 @@ func main() {
 
 	// enable trainer after flash operations (bluetooth conflicts with flash)
 	t.Configure()
-	go t.Run()
+	t.Start()
 
 	// switch display to normal mode
 	d.RemoveText(nil)
@@ -153,10 +159,13 @@ func main() {
 	if pinSelectPPM.Get() { // high means Bluetooth
 		d.SetTextBlinkFunc(d.AddText(1, "  :  :  :  :  :  "), "", func() bool { return !t.Paired() })
 	}
+	d.Update()
 
 	// main loop
 	iter = 0
-	for {
+	for range tickPeriod.C {
+
+		pinDebugMain.Set(!pinDebugMain.Get())
 
 		if !pinResetCenter.Get() || (iter%400 == 0 && i.ReadTap()) { // Button pressed OR [double] tap registered (shall not read register more frequently than double tap duration)
 			o.Reset()
@@ -166,22 +175,26 @@ func main() {
 		}
 
 		o.Update()
-		for i, a := range o.Angles() {
-			c := angleToChannel(a)
-			t.SetChannel(i, c)
-			d.SetBar(byte(i), int16(1500-c)/10, false)
+
+		pinDebugData.High()
+		if iter%20 == 0 {
+			for i, a := range o.Angles() {
+				c := angleToChannel(a)
+				t.SetChannel(i, c)
+				d.SetBar(byte(i), int16(1500-c)/10, false)
+			}
+			t.Update()
+			d.Update()
+		} else {
+			runtime.GC() // run garbage collector often to avoid long pauses
 		}
+		pinDebugData.Low()
 
 		// blink and trace
 		stateMain(iter)
 		statePara(iter)
 		trace(iter)
 
-		// memory
-		runtime.GC() // run garbage collector often to avoid long pauses
-
-		// wait
-		<-tickPeriod.C
 		iter += PERIOD
 		iter %= 10_000
 	}
@@ -273,17 +286,11 @@ func statePara(iter uint16) {
 	}
 }
 
-var ms = runtime.MemStats{}
-var traceTime = time.Now()
-
 func trace(iter uint16) {
 	if iter%TRACE_COUNT == 0 { // print out state
-		timeDiff := time.Since(traceTime)
-		traceTime = time.Now()
-		runtime.ReadMemStats(&ms)
 		channels := t.Channels()
 		r, p, y := channels[0], channels[1], channels[2]
 		rc, pc, yc := o.Offsets()
-		println(time.Now().Unix(), "|", t.Address(), "|", Version, "| [", r, ",", p, ",", y, "] (", rc, ",", pc, ",", yc, ") |", ms.HeapInuse, "/", timeDiff.Milliseconds()-TRACE_COUNT, "ms")
+		println("HT", Version, "|", t.Address(), "| [", r, ",", p, ",", y, "] (", rc, ",", pc, ",", yc, ")")
 	}
 }
