@@ -1,6 +1,8 @@
 # Zero configuration auto-calibrating DIY head tracker
 
-Head Tracker runs on [Seeeduino XIAO BLE Sense](https://www.seeedstudio.com/Seeed-XIAO-BLE-Sense-nRF52840-p-5253.html) and [Arduino Nano 33 BLE](https://store.arduino.cc/arduino-nano-33-ble) boards and connects to [OpenTX](https://github.com/opentx/opentx) and [ETHOS](https://ethos.frsky-rc.com) radios via either wired (PPM) or wireless (Bluetooth) trainer link.
+Head Tracker runs on [Seeeduino XIAO BLE Sense](https://www.seeedstudio.com/Seeed-XIAO-BLE-Sense-nRF52840-p-5253.html) and [Arduino Nano 33 BLE](https://store.arduino.cc/arduino-nano-33-ble) boards and connects to [OpenTX](https://github.com/opentx/opentx), [EdgeTX](https://edgetx.org) and [ETHOS](https://ethos.frsky-rc.com) radios via either wired (PPM) or wireless (Bluetooth) trainer link.
+
+This project would not exist without [awesome work](https://github.com/tinygo-org/awesome-tinygo) by [TinyGo](https://tinygo.org) community that made [codding in Go for embedded systems](https://github.com/tinygo-org/tinygo) possible!
 
 ## Quick Setup
 
@@ -23,17 +25,12 @@ Head Tracker runs on [Seeeduino XIAO BLE Sense](https://www.seeedstudio.com/Seee
 - **Calibrate and Setup**  
   _nothing to do here, skip to the next item_
 - **HAVE FUN!**  
-  _and consider installing our own [fpv camera gimbal](https://cults3d.com/en/3d-model/gadget/micro-camera-gimbal-ysoldak) on your favourite model!_
+    - _try our [fpv camera gimbal](https://cults3d.com/en/3d-model/gadget/micro-camera-gimbal-ysoldak) on your favourite model;_  
+    - _check out [our shop](https://skygadgets.shop) for other cool gadgets._
 
 ## Video Tutorials
 - [Connect the head tracker wirelessly to your radio](https://youtu.be/b292hyC5Ctk?t=280)  
   _watch full video to learn how to power the head tracker with a 1-cell lipo battery_
-
-## Fully assembed
-
-Don't feel DIY? Order the fully assembled head tracker with display and button from [our shop at Etsy](https://www.etsy.com/se-en/shop/SkyGadgets).  
-- [DJI FPV V1/V2 Goggles](https://www.etsy.com/se-en/listing/1604692148/head-tracker-for-dji-fpv-goggles-v1v2)
-- [Walksnail Avatar Goggles X](https://www.etsy.com/se-en/listing/1660848137/head-tracker-for-walksnail-avatar)
 
 ---
 
@@ -51,10 +48,10 @@ Don't feel DIY? Order the fully assembled head tracker with display and button f
 </table>
 
 ## Camera Gimbal
-Check our DIY 3D printed [Micro Camera Gimbal](https://cults3d.com/en/3d-model/gadget/micro-camera-gimbal-ysoldak)  
+Check our DIY 3D printed [Micro Camera Gimbal](https://cults3d.com/en/3d-model/gadget/micro-camera-gimbal-ysoldak) and [Low Profile Mod](https://cults3d.com/en/3d-model/gadget/low-profile-mod-for-micro-camera-gimbal) for it!  
 Join our dedicated [Facebook group](https://www.facebook.com/groups/242161055041994)  
 
-Also available now to [order ready to use on Etsy](https://www.etsy.com/se-en/listing/1572644964/fpv-camera-gimbal-for-micro-servos)
+Also available [fully assembled or as a kit on our shop](https://skygadgets.shop/products/fpv-camera-gimbal-for-micro-servos).
 
 <table>
 <tr><td colspan="2">
@@ -111,7 +108,7 @@ Then connect the board to your computer, double-tap on button and copy `ht_nano-
 ## Use head tracker
 Attach the head tracker to your FPV goggles.  
 Power the head tracker via USB, 1 cell lipo battery or 5v source.  
-> Hint: I personally use analog adapter bay on my DJI V1 goggles to source 5v.  
+> Hint: I've been using analog adapter bay on my DJI V1 goggles to source 5v. Now, I source power via USB-C cable connected to DJI Integra.  
 
 ### Bare
 The head tracker is usable "bare", no extra accessories needed, not even a button.  
