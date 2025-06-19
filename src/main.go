@@ -286,11 +286,14 @@ func statePara(iter uint16) {
 	}
 }
 
+var ms = runtime.MemStats{}
+
 func trace(iter uint16) {
 	if iter%TRACE_COUNT == 0 { // print out state
 		channels := t.Channels()
 		r, p, y := channels[0], channels[1], channels[2]
 		rc, pc, yc := o.Offsets()
-		println("HT", Version, "|", t.Address(), "| [", r, ",", p, ",", y, "] (", rc, ",", pc, ",", yc, ")")
+		runtime.ReadMemStats(&ms)
+		println("HT", Version, "|", t.Address(), "| [", r, ",", p, ",", y, "] (", rc, ",", pc, ",", yc, ")", ms.HeapInuse)
 	}
 }

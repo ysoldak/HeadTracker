@@ -21,7 +21,7 @@ const (
 type IMU struct {
 	device *lsm6ds3tr.Device
 	gyrCal *GyrCal
-	buf    [1]byte // buffer for reading tap source register, having it here avoids heap allocation
+	buf    [2]byte // buffer for reading tap source register, having it here avoids heap allocation
 }
 
 func NewIMU() *IMU {
@@ -85,7 +85,8 @@ func (imu *IMU) Read() (gx, gy, gz, ax, ay, az float64, err error) {
 }
 
 func (imu *IMU) ReadTap() (tap bool) {
-	imu.buf[0] = 0x00
-	machine.I2C1.ReadRegister(uint8(imu.device.Address), TAP_SRC, imu.buf[:])
-	return imu.buf[0]&0x10 != 0
+	imu.buf[0] = TAP_SRC
+	imu.buf[1] = 0x00
+	machine.I2C1.Tx(imu.device.Address, imu.buf[0:1], imu.buf[1:2])
+	return imu.buf[1]&0x10 != 0
 }
