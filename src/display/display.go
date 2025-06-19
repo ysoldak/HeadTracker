@@ -121,18 +121,20 @@ func (d *Display) bars() {
 	for row, b := range d.Bars {
 		y := int16(row * 5)
 		tinydraw.FilledRectangle(d.device, 13, y, 115, 3, BLACK)
-		length := b.value
-		if length < 0 {
-			tinydraw.FilledRectangle(d.device, 64+length, y, -length, 3, WHITE)
-			if b.bidir {
-				tinydraw.FilledRectangle(d.device, 64, y, -length, 3, WHITE)
-			}
-		} else {
-			tinydraw.FilledRectangle(d.device, 64, y, length, 3, WHITE)
-			if b.bidir {
-				tinydraw.FilledRectangle(d.device, 64-length, y, length, 3, WHITE)
-			}
+		if b.value == 0 {
+			continue
 		}
+		x := int16(64)
+		w := int16(b.value)
+		if b.bidir {
+			x = 64 - w
+			w = w * 2
+		}
+		if b.value < 0 {
+			w = -w
+			x -= w // move starting point to the left
+		}
+		tinydraw.FilledRectangle(d.device, x, y, w, 3, WHITE)
 	}
 }
 
