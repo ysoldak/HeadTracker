@@ -185,8 +185,6 @@ func main() {
 			}
 			t.Update()
 			d.Update()
-		} else {
-			runtime.GC() // run garbage collector often to avoid long pauses
 		}
 		pinDebugData.Low()
 
