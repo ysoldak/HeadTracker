@@ -30,25 +30,31 @@ func NewIMU() *IMU {
 	}
 }
 
-func (imu *IMU) Configure() {
+func (imu *IMU) Configure() error {
 	// Configure I2C
-	machine.I2C1.Configure(machine.I2CConfig{
+	err := machine.I2C1.Configure(machine.I2CConfig{
 		Frequency: 100 * machine.KHz,
 		SDA:       machine.SDA1_PIN,
 		SCL:       machine.SCL1_PIN,
 	})
+	if err != nil {
+		return err
+	}
 
 	// Wait a bit
 	time.Sleep(10 * time.Millisecond)
 
 	// Configure IMU
 	imu.device = lsm6ds3tr.New(machine.I2C1)
-	imu.device.Configure(lsm6ds3tr.Configuration{
+	err = imu.device.Configure(lsm6ds3tr.Configuration{
 		AccelRange:      lsm6ds3tr.ACCEL_4G,     // 4g
 		AccelSampleRate: lsm6ds3tr.ACCEL_SR_208, // every ~4.8ms
 		GyroRange:       lsm6ds3tr.GYRO_500DPS,  // 500 deg/s
 		GyroSampleRate:  lsm6ds3tr.GYRO_SR_208,  // every ~4.8ms
 	})
+	if err != nil {
+		return err
+	}
 
 	tapConfig := map[byte]byte{
 		TAP_CFG:     0x8F, // interrupts enable + tap all axes + latch (saves the state of the interrupt until register is read)
@@ -62,6 +68,7 @@ func (imu *IMU) Configure() {
 		machine.I2C1.WriteRegister(uint8(imu.device.Address), reg, []byte{val})
 	}
 
+	return nil
 }
 
 func (imu *IMU) Read() (gx, gy, gz, ax, ay, az float64, err error) {
