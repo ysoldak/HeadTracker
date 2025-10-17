@@ -1,4 +1,4 @@
 .DS_Store
-heap
+.vscode
+attic
 build
-.vscode/settings.json
