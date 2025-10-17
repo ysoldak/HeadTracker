@@ -11,7 +11,7 @@ endif
 
 # --- Go maintenance targets ---
 
-update:
+bump-deps:
 	go get -u github.com/go-gl/mathgl@latest
 	go get -u github.com/tracktum/go-ahrs@latest
 	go get -u tinygo.org/x/bluetooth@latest
@@ -19,6 +19,12 @@ update:
 	go get -u tinygo.org/x/tinydraw@latest
 	go get -u tinygo.org/x/tinyfont@latest
 	go mod tidy
+
+llvm:
+	brew install llvm@20
+	brew install lld@20
+	brew link --force --overwrite llvm@20
+	brew link --force --overwrite lld@20
 
 # --- Common targets ---
 
