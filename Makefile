@@ -9,6 +9,23 @@ endif
 
 .PHONY: clean build flash monitor
 
+# --- Go maintenance targets ---
+
+bump-deps:
+	go get -u github.com/go-gl/mathgl@latest
+	go get -u github.com/tracktum/go-ahrs@latest
+	go get -u tinygo.org/x/bluetooth@latest
+	go get -u tinygo.org/x/drivers@latest
+	go get -u tinygo.org/x/tinydraw@latest
+	go get -u tinygo.org/x/tinyfont@latest
+	go mod tidy
+
+llvm:
+	brew install llvm@20
+	brew install lld@20
+	brew link --force --overwrite llvm@20
+	brew link --force --overwrite lld@20
+
 # --- Common targets ---
 
 VERSION ?= $(shell git describe --tags)

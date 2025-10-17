@@ -26,7 +26,7 @@ type Bar struct {
 }
 
 type Display struct {
-	device ssd1306.Device
+	device *ssd1306.Device
 
 	blinkCount int
 	blinkColor color.RGBA
@@ -120,17 +120,17 @@ func (d *Display) bars() {
 	}
 	for row, b := range d.Bars {
 		y := int16(row * 5)
-		tinydraw.FilledRectangle(&d.device, 13, y, 115, 3, BLACK)
+		tinydraw.FilledRectangle(d.device, 13, y, 115, 3, BLACK)
 		length := b.value
 		if length < 0 {
-			tinydraw.FilledRectangle(&d.device, 64+length, y, -length, 3, WHITE)
+			tinydraw.FilledRectangle(d.device, 64+length, y, -length, 3, WHITE)
 			if b.bidir {
-				tinydraw.FilledRectangle(&d.device, 64, y, -length, 3, WHITE)
+				tinydraw.FilledRectangle(d.device, 64, y, -length, 3, WHITE)
 			}
 		} else {
-			tinydraw.FilledRectangle(&d.device, 64, y, length, 3, WHITE)
+			tinydraw.FilledRectangle(d.device, 64, y, length, 3, WHITE)
 			if b.bidir {
-				tinydraw.FilledRectangle(&d.device, 64-length, y, length, 3, WHITE)
+				tinydraw.FilledRectangle(d.device, 64-length, y, length, 3, WHITE)
 			}
 		}
 	}
@@ -164,5 +164,5 @@ func toggleColor(c color.RGBA) color.RGBA {
 }
 
 func (d *Display) print(row byte, text string, c color.RGBA) {
-	tinyfont.WriteLineRotated(&d.device, &proggy.TinySZ8pt7b, 14, 12+int16(row)*16, text, c, tinyfont.NO_ROTATION)
+	tinyfont.WriteLineRotated(d.device, &proggy.TinySZ8pt7b, 14, 12+int16(row)*16, text, c, tinyfont.NO_ROTATION)
 }
