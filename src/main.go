@@ -48,7 +48,13 @@ func init() {
 	// Orientation
 	i = orientation.NewIMU()
 	o = orientation.New(i)
-	o.Configure(PERIOD * time.Millisecond)
+	err := o.Configure(PERIOD * time.Millisecond)
+	if err != nil {
+		for {
+			println("IMU configuration error:", err.Error())
+			time.Sleep(1 * time.Second)
+		}
+	}
 
 	// Trainer (Bluetooth or PPM)
 	if !pinSelectPPM.Get() { // Low means connected to GND => PPM output requested

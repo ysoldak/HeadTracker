@@ -29,9 +29,13 @@ func New(imu *IMU) *Orientation {
 	}
 }
 
-func (o *Orientation) Configure(period time.Duration) {
-	o.imu.Configure()
+func (o *Orientation) Configure(period time.Duration) error {
+	err := o.imu.Configure()
+	if err != nil {
+		return err
+	}
 	o.fusion = ahrs.NewMadgwick(madgwickBeta, float64(time.Second/period))
+	return nil
 }
 
 // Reset orientation for sensor fusion algoritm
