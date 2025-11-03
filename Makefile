@@ -80,3 +80,8 @@ debug: build-for-debug
 
 debug-dap: build-for-debug
 	tinygo gdb -target=$(TARGET) -tags=$(EXTRA_TAGS) -size=$(SIZE) -opt=$(DEBUG_OPT) -ocd-output -programmer=cmsis-dap $(SRC)
+
+# --- Test targets ---
+
+test-flash:
+	tinygo flash -target=xiao-ble -opt=z ./test
