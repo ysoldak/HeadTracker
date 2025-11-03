@@ -33,12 +33,19 @@ LD_FLAGS := -ldflags="-X 'main.Version=$(VERSION)'" # https://www.digitalocean.c
 
 clean:
 	@rm -rf build
+	@rm -rf softdevice
 
-build:
+softdevice:
+	@mkdir -p softdevice
+	@bluetooth_ver=$$(cat go.mod | grep bluetooth | sed "s/.* //"); \
+	ln -s $(HOME)/go/pkg/mod/tinygo.org/x/bluetooth@$$bluetooth_ver/s140_nrf52_6.1.1 ./softdevice/; \
+	ln -s $(HOME)/go/pkg/mod/tinygo.org/x/bluetooth@$$bluetooth_ver/s140_nrf52_7.3.0 ./softdevice/
+
+build: softdevice
 	@mkdir -p build
 	tinygo build $(LD_FLAGS) -target=$(TARGET) -size=$(SIZE) -opt=z -print-allocs=HeadTracker -o ./build/$(FILE) ./src
 
-flash:
+flash: softdevice
 	tinygo flash $(LD_FLAGS) -target=$(TARGET) -size=$(SIZE) -opt=z -print-allocs=HeadTracker ./src
 
 monitor:
