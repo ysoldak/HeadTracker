@@ -1,4 +1,4 @@
-//go:build s140v7
+//go:build s140v7 && nogopls
 
 package trainer
 

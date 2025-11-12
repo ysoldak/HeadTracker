@@ -1,3 +1,5 @@
+//go:build nogopls
+
 package trainer
 
 // #include "ble.h"

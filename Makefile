@@ -31,15 +31,24 @@ llvm:
 VERSION ?= $(shell git describe --tags)
 LD_FLAGS := -ldflags="-X 'main.Version=$(VERSION)'" # https://www.digitalocean.com/community/tutorials/using-ldflags-to-set-version-information-for-go-applications
 
+EXTRA_TAGS = nogopls # to include all source files, even those excluded for gopls
+
 clean:
 	@rm -rf build
+	@rm -rf softdevice
 
-build:
+softdevice:
+	@mkdir -p softdevice
+	@bluetooth_ver=$$(cat go.mod | grep bluetooth | sed "s/.* //"); \
+	ln -s $(HOME)/go/pkg/mod/tinygo.org/x/bluetooth@$$bluetooth_ver/s140_nrf52_6.1.1 ./softdevice/; \
+	ln -s $(HOME)/go/pkg/mod/tinygo.org/x/bluetooth@$$bluetooth_ver/s140_nrf52_7.3.0 ./softdevice/
+
+build: softdevice
 	@mkdir -p build
-	tinygo build $(LD_FLAGS) -target=$(TARGET) -size=$(SIZE) -opt=z -print-allocs=HeadTracker -o ./build/$(FILE) ./src
+	tinygo build $(LD_FLAGS) -tags=$(EXTRA_TAGS) -target=$(TARGET) -size=$(SIZE) -opt=z -print-allocs=HeadTracker -o ./build/$(FILE) ./src
 
-flash:
-	tinygo flash $(LD_FLAGS) -target=$(TARGET) -size=$(SIZE) -opt=z -print-allocs=HeadTracker ./src
+flash: softdevice
+	tinygo flash $(LD_FLAGS) -tags=$(EXTRA_TAGS) -target=$(TARGET) -size=$(SIZE) -opt=z -print-allocs=HeadTracker ./src
 
 monitor:
 	tinygo monitor -target=$(TARGET)
@@ -63,10 +72,10 @@ flash-uf2-bootloader-dap: $(UF2_BOOTLOADER_HEX)
 DEBUG_OPT=1
 
 build-for-debug:
-	tinygo build -target=$(TARGET) -size=$(SIZE) -opt=$(DEBUG_OPT) -o ./build/debug.elf $(SRC)
+	tinygo build -target=$(TARGET) -tags=$(EXTRA_TAGS) -size=$(SIZE) -opt=$(DEBUG_OPT) -o ./build/debug.elf $(SRC)
 
 debug: build-for-debug
-	tinygo gdb -target=$(TARGET) -size=$(SIZE) -opt=$(DEBUG_OPT) -ocd-output -programmer=jlink $(SRC)
+	tinygo gdb -target=$(TARGET) -tags=$(EXTRA_TAGS) -size=$(SIZE) -opt=$(DEBUG_OPT) -ocd-output -programmer=jlink $(SRC)
 
 debug-dap: build-for-debug
-	tinygo gdb -target=$(TARGET) -size=$(SIZE) -opt=$(DEBUG_OPT) -ocd-output -programmer=cmsis-dap $(SRC)
+	tinygo gdb -target=$(TARGET) -tags=$(EXTRA_TAGS) -size=$(SIZE) -opt=$(DEBUG_OPT) -ocd-output -programmer=cmsis-dap $(SRC)
