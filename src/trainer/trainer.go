@@ -1,7 +1,7 @@
 package trainer
 
 type Trainer interface {
-	Configure()
+	Configure(name string)
 	Start()
 	Update()
 	Paired() bool
