@@ -169,15 +169,20 @@ func main() {
 
 	// main loop
 	iter = 0
+	offLedRIter := -1
 	for range tickPeriod.C {
 
 		pinDebugMain.Set(!pinDebugMain.Get())
 
-		if !pinResetCenter.Get() || (iter%400 == 0 && i.ReadTap()) { // Button pressed OR [double] tap registered (shall not read register more frequently than double tap duration)
+		if !pinResetCenter.Get() || (iter%400 == 0 && i.ReadTap() || t.ResetRequested()) { // Button pressed OR [double] tap registered (shall not read register more frequently than double tap duration)
 			o.Reset()
 			on(ledR)
-		} else {
+			println("HT", Version, "|", t.Address(), "| [ Orientation reset  ]")
+			offLedRIter = (int(iter) + 500) % 10_000 // keep LED on for 500 ms
+		}
+		if offLedRIter >= 0 && int(iter) == offLedRIter {
 			off(ledR)
+			offLedRIter = -1
 		}
 
 		o.Update()

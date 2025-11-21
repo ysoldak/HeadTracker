@@ -82,6 +82,10 @@ func (ppm *PPM) SetChannel(n int, v uint16) {
 	ppm.channels[n] = v
 }
 
+func (ppm *PPM) ResetRequested() bool {
+	return false
+}
+
 // --- Configure --------------------------------------------------------------
 
 func configurePin() {

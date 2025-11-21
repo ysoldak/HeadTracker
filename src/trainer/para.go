@@ -24,6 +24,8 @@ type Para struct {
 	paired   bool
 	address  string
 	channels [8]uint16
+
+	resetRequested bool
 }
 
 func NewPara() *Para {
@@ -108,10 +110,29 @@ func (t *Para) Configure(name string) {
 		Flags:  bluetooth.CharacteristicWriteWithoutResponsePermission | bluetooth.CharacteristicNotifyPermission,
 	}
 
+	// Commands
+	// R - reset orientation, compatible with Cliff's HT reset button
+	aff2 := bluetooth.CharacteristicConfig{
+		Handle: nil,
+		UUID:   bluetooth.New16BitUUID(0xAFF2),
+		Value:  []byte{},
+		Flags:  bluetooth.CharacteristicWritePermission,
+		WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
+			if len(value) == 1 && value[0] == 'R' {
+				t.resetRequested = true
+			}
+		},
+	}
+
 	t.adapter.AddService(&bluetooth.Service{
 		UUID: bluetooth.New16BitUUID(0xFFF0),
 		Characteristics: []bluetooth.CharacteristicConfig{
-			fff1, fff2, fff3, fff5, fff6,
+			fff1,
+			fff2,
+			fff3,
+			fff5,
+			fff6,
+			aff2,
 		},
 	})
 
@@ -171,6 +192,14 @@ func (p *Para) Channels() []uint16 {
 
 func (p *Para) SetChannel(n int, v uint16) {
 	p.channels[n] = v
+}
+
+func (p *Para) ResetRequested() bool {
+	if p.resetRequested {
+		p.resetRequested = false
+		return true
+	}
+	return false
 }
 
 // -- PARA Protocol ------------------------------------------------------------
