@@ -35,7 +35,7 @@ func NewPara() *Para {
 	}
 }
 
-func (t *Para) Configure() {
+func (t *Para) Configure(name string) {
 	t.adapter.Enable()
 
 	sysid := bluetooth.CharacteristicConfig{
@@ -117,7 +117,7 @@ func (t *Para) Configure() {
 
 	t.adv = t.adapter.DefaultAdvertisement()
 	t.adv.Configure(bluetooth.AdvertisementOptions{
-		LocalName:    "Hello",
+		LocalName:    name,
 		ServiceUUIDs: []bluetooth.UUID{bluetooth.New16BitUUID(0xFFF0)},
 	})
 	t.adv.Start()

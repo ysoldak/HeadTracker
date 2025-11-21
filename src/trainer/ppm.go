@@ -51,7 +51,7 @@ func NewPPM(pin machine.Pin) *PPM {
 	return &ppmInstance
 }
 
-func (ppm *PPM) Configure() {
+func (ppm *PPM) Configure(_ string) {
 	ppm.pin.Low()
 	configurePin()
 	configureTimers()

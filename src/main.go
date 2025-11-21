@@ -156,7 +156,7 @@ func main() {
 	flashStore()
 
 	// enable trainer after flash operations (bluetooth conflicts with flash)
-	t.Configure()
+	t.Configure("HT " + Version)
 	t.Start()
 
 	// switch display to normal mode
