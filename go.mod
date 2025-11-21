@@ -24,3 +24,6 @@ require (
 	golang.org/x/exp v0.0.0-20251009144603-d2f985daa21b // indirect
 	golang.org/x/sys v0.37.0 // indirect
 )
+
+// replace tinygo.org/x/drivers => ../tinygo-drivers
+// replace tinygo.org/x/bluetooth => ../tinygo-bluetooth
