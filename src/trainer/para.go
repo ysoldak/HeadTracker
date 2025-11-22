@@ -26,6 +26,7 @@ type Para struct {
 	channels [8]uint16
 
 	resetRequested bool
+	name           string
 }
 
 func NewPara() *Para {
@@ -38,6 +39,8 @@ func NewPara() *Para {
 }
 
 func (t *Para) Configure(name string) {
+	t.name = name
+
 	t.adapter.Enable()
 
 	sysid := bluetooth.CharacteristicConfig{
@@ -124,6 +127,27 @@ func (t *Para) Configure(name string) {
 		},
 	}
 
+	// Device Name
+	ff01 := bluetooth.CharacteristicConfig{
+		Handle: nil,
+		UUID:   bluetooth.New16BitUUID(0xFF01),
+		Value:  []byte(name),
+		Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
+		WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
+			if len(value) == 0 {
+				return
+			}
+			if len(value) > 16 {
+				value = value[:16]
+			}
+			t.name = string(value)
+			t.adv.Configure(bluetooth.AdvertisementOptions{
+				LocalName:    t.name,
+				ServiceUUIDs: []bluetooth.UUID{bluetooth.New16BitUUID(0xFFF0)},
+			})
+		},
+	}
+
 	t.adapter.AddService(&bluetooth.Service{
 		UUID: bluetooth.New16BitUUID(0xFFF0),
 		Characteristics: []bluetooth.CharacteristicConfig{
@@ -133,12 +157,13 @@ func (t *Para) Configure(name string) {
 			fff5,
 			fff6,
 			aff2,
+			ff01,
 		},
 	})
 
 	t.adv = t.adapter.DefaultAdvertisement()
 	t.adv.Configure(bluetooth.AdvertisementOptions{
-		LocalName:    name,
+		LocalName:    t.name,
 		ServiceUUIDs: []bluetooth.UUID{bluetooth.New16BitUUID(0xFFF0)},
 	})
 	t.adv.Start()
@@ -194,12 +219,16 @@ func (p *Para) SetChannel(n int, v uint16) {
 	p.channels[n] = v
 }
 
-func (p *Para) ResetRequested() bool {
+func (p *Para) Reset() bool {
 	if p.resetRequested {
 		p.resetRequested = false
 		return true
 	}
 	return false
+}
+
+func (p *Para) Name() string {
+	return p.name
 }
 
 // -- PARA Protocol ------------------------------------------------------------
