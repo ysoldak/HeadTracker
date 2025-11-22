@@ -10,5 +10,8 @@ type Trainer interface {
 	Update()
 	Paired() bool
 	Address() string
-	ResetRequested() bool
+
+	// Remote controls
+	Reset() bool
+	Name() string
 }

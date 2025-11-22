@@ -9,6 +9,27 @@ var errFlashWrongChecksum = errors.New("wrong checksum reading data from flash")
 
 type Flash struct {
 	roll, pitch, yaw int32
+	name             [16]byte
+}
+
+func (fd *Flash) SetName(name string) {
+	n := 0
+	for n < len(name) && n < len(fd.name) {
+		fd.name[n] = byte(name[n])
+		n++
+	}
+	for n < len(fd.name) {
+		fd.name[n] = 0
+		n++
+	}
+}
+
+func (fd *Flash) Name() string {
+	n := 0
+	for n < len(fd.name) && fd.name[n] != 0 {
+		n++
+	}
+	return string(fd.name[:n])
 }
 
 func (fd *Flash) IsEmpty() bool {
@@ -17,7 +38,7 @@ func (fd *Flash) IsEmpty() bool {
 
 func (fd *Flash) Load() error {
 
-	data := make([]byte, 3*4+1) // each calibration parameter is int32, plus checksum
+	data := make([]byte, 3*4+16+1) // each calibration parameter is int32, plus name, plus checksum
 	_, err := machine.Flash.ReadAt(data, 0)
 	if err != nil {
 		return err
@@ -35,15 +56,17 @@ func (fd *Flash) Load() error {
 	fd.roll = toInt32(data[0:4])
 	fd.pitch = toInt32(data[4:8])
 	fd.yaw = toInt32(data[8:12])
+	copy(fd.name[:], data[12:28])
 
 	return nil
 }
 
 func (fd *Flash) Store() error {
-	data := make([]byte, 3*4+1) // each calibration parameter is int32, plus checksum
+	data := make([]byte, 3*4+16+1) // each calibration parameter is int32, plus name, plus checksum
 	fromInt32(data[0:4], fd.roll)
 	fromInt32(data[4:8], fd.pitch)
 	fromInt32(data[8:12], fd.yaw)
+	copy(data[12:28], fd.name[:])
 
 	// xor all bytes, including the last (it is zero anyway)
 	checksum := byte(0)

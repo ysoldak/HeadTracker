@@ -39,6 +39,7 @@ var ppmTimerHigh *nrf.TIMER_Type = nrf.TIMER4
 var ppmInstance PPM
 
 type PPM struct {
+	name     string
 	pin      machine.Pin
 	channels [3]uint16
 }
@@ -51,7 +52,8 @@ func NewPPM(pin machine.Pin) *PPM {
 	return &ppmInstance
 }
 
-func (ppm *PPM) Configure(_ string) {
+func (ppm *PPM) Configure(name string) {
+	ppm.name = name
 	ppm.pin.Low()
 	configurePin()
 	configureTimers()
@@ -82,8 +84,12 @@ func (ppm *PPM) SetChannel(n int, v uint16) {
 	ppm.channels[n] = v
 }
 
-func (ppm *PPM) ResetRequested() bool {
+func (ppm *PPM) Reset() bool {
 	return false
+}
+
+func (ppm *PPM) Name() string {
+	return ppm.name
 }
 
 // --- Configure --------------------------------------------------------------

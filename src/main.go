@@ -39,6 +39,10 @@ var (
 	tickPeriod *time.Ticker
 )
 
+var (
+	deviceName = "HT " + Version // default name until trainer provides another one
+)
+
 func init() {
 
 	initLeds()
@@ -68,6 +72,7 @@ func init() {
 	d.Configure()
 
 	f = &Flash{}
+	f.SetName(deviceName)
 
 	tickPeriod = time.NewTicker(PERIOD * time.Millisecond)
 
@@ -156,7 +161,7 @@ func main() {
 	flashStore()
 
 	// enable trainer after flash operations (bluetooth conflicts with flash)
-	t.Configure("HT " + Version)
+	t.Configure(deviceName)
 	t.Start()
 
 	// switch display to normal mode
@@ -174,12 +179,14 @@ func main() {
 
 		pinDebugMain.Set(!pinDebugMain.Get())
 
-		if !pinResetCenter.Get() || (iter%400 == 0 && i.ReadTap() || t.ResetRequested()) { // Button pressed OR [double] tap registered (shall not read register more frequently than double tap duration)
+		// Button pressed OR [double] tap registered (shall not read register more frequently than double tap duration) OR remote reset command
+		if !pinResetCenter.Get() || (iter%400 == 0 && i.ReadTap() || t.Reset()) {
 			o.Reset()
 			on(ledR)
 			println("HT", Version, "|", t.Address(), "| [ Orientation reset  ]")
 			offLedRIter = (int(iter) + 500) % 10_000 // keep LED on for 500 ms
 		}
+		// turn off LED R after timeout
 		if offLedRIter >= 0 && int(iter) == offLedRIter {
 			off(ledR)
 			offLedRIter = -1
@@ -196,6 +203,8 @@ func main() {
 			}
 			t.Update()
 			d.Update()
+		} else {
+			flashStore()
 		}
 		pinDebugData.Low()
 
@@ -250,6 +259,9 @@ func flashLoad() {
 
 	// set offsets, they are either actual previous calibration result or zeroes inially and in case of error
 	o.SetOffsets(f.roll, f.pitch, f.yaw) // zeroes at worst
+
+	// set device name from flash
+	deviceName = f.Name()
 }
 
 // Store only when difference is large enough
@@ -257,6 +269,15 @@ func flashStore() {
 	roll, pitch, yaw := o.Offsets()
 	if abs(f.roll-roll) > flashStoreTreshold || abs(f.pitch-pitch) > flashStoreTreshold || abs(f.yaw-yaw) > flashStoreTreshold {
 		f.roll, f.pitch, f.yaw = roll, pitch, yaw
+		err := f.Store()
+		if err != nil {
+			println(time.Now().Unix(), err.Error())
+		}
+	}
+	tName := t.Name()
+	if tName != deviceName {
+		deviceName = tName
+		f.SetName(tName)
 		err := f.Store()
 		if err != nil {
 			println(time.Now().Unix(), err.Error())
@@ -303,6 +324,6 @@ func trace(iter uint16) {
 		r, p, y := channels[0], channels[1], channels[2]
 		rc, pc, yc := o.Offsets()
 		runtime.ReadMemStats(&ms)
-		println("HT", Version, "|", t.Address(), "| [", r, ",", p, ",", y, "] (", rc, ",", pc, ",", yc, ")", ms.HeapInuse)
+		println(deviceName, "|", t.Address(), "| [", r, ",", p, ",", y, "] (", rc, ",", pc, ",", yc, ")", ms.HeapInuse)
 	}
 }
