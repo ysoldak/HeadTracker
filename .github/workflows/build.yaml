@@ -50,6 +50,7 @@ jobs:
       run: make TARGET=${{ matrix.target }} build
 
     - name: Set TinyGo version for artifact
+      shell: bash
       run: |
         TINYGO_VERSION=${{ matrix.tinygo-version }}
         echo "TINYGO_VERSION_SAFE=${TINYGO_VERSION//:/-}" >> $GITHUB_ENV
