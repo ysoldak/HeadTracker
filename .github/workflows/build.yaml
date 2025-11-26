@@ -37,6 +37,10 @@ jobs:
       run: |
         go mod tidy
 
+
+    - name: Clean
+      run: make clean
+
     - name: Softdevice
       run: make softdevice
 
