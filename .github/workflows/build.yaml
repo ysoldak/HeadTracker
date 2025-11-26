@@ -1,18 +1,20 @@
 name: Build binary
 
 on:
-  push:
-    branches:
-      - master
   pull_request:
-    branches:
-      - master
+    branches: [ master ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tinygo-version: ['0.39.0', 'dev']
+        target:
+          - xiao-ble
+          - nano-33-ble-s140v6-uf2
     container:
-      image: ghcr.io/tinygo-org/tinygo:0.39.0
+      image: ghcr.io/tinygo-org/tinygo:${{ matrix.tinygo-version }}
       options: --user root
     steps:
 
@@ -34,15 +36,12 @@ jobs:
       run: |
         go mod tidy
 
-    - name: Build XIAO BLE Sense binary
-      run: make TARGET=xiao-ble build
-
-    - name: Build Nano 33 BLE binary
-      run: make TARGET=nano-33-ble-s140v6-uf2 build
+    - name: Build ${{ matrix.target }} binary
+      run: make TARGET=${{ matrix.target }} build
 
     - name: Store binaries
       uses: actions/upload-artifact@v4
       with:
-        name: binaries
+        name: binaries-${{ matrix.target }}-tinygo-${{ matrix.tinygo-version }}
         path: build/*
         retention-days: 14
