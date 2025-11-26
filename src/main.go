@@ -1,6 +1,7 @@
 package main
 
 import (
+	"machine"
 	"math"
 	"runtime"
 	"strconv"
@@ -25,7 +26,7 @@ const (
 	radToMs = 512.0 / math.Pi
 )
 
-const flashStoreTreshold = 10_000
+const flashStoreTreshold = 100_000
 
 var (
 	d *display.Display
@@ -40,7 +41,7 @@ var (
 )
 
 var (
-	deviceName = "HT " + Version // default name until trainer provides another one
+	deviceName = "HT"
 )
 
 func init() {
@@ -72,13 +73,12 @@ func init() {
 	d.Configure()
 
 	f = &Flash{}
-	f.SetName(deviceName)
-
-	tickPeriod = time.NewTicker(PERIOD * time.Millisecond)
 
 }
 
 func main() {
+
+	tickPeriod = time.NewTicker(PERIOD * time.Millisecond)
 
 	batVolts, err := batteryVoltage()
 	batString := ""
@@ -96,6 +96,10 @@ func main() {
 	}
 
 	flashLoad()
+
+	// start trainer after reading flash (device name may be on flash)
+	t.Configure(deviceName)
+	t.Start()
 
 	// record initial orientation
 	o.Reset()
@@ -160,10 +164,6 @@ func main() {
 	// store calibration values
 	flashStore()
 
-	// enable trainer after flash operations (bluetooth conflicts with flash)
-	t.Configure(deviceName)
-	t.Start()
-
 	// switch display to normal mode
 	d.RemoveText(nil)
 	d.AddText(1, t.Address())
@@ -179,11 +179,11 @@ func main() {
 
 		pinDebugMain.Set(!pinDebugMain.Get())
 
-		// Button pressed OR [double] tap registered (shall not read register more frequently than double tap duration) OR remote reset command
-		if !pinResetCenter.Get() || (iter%400 == 0 && i.ReadTap() || t.Reset()) {
+		// Button pressed OR [double] tap registered (shall not read register more frequently than double tap duration) OR remote orientation reset requested
+		if !pinResetCenter.Get() || (iter%400 == 0 && i.ReadTap() || t.OrientationReset()) {
 			o.Reset()
 			on(ledR)
-			println("HT", Version, "|", t.Address(), "| [ Orientation reset  ]")
+			println("MAIN: Orientation reset")
 			offLedRIter = (int(iter) + 500) % 10_000 // keep LED on for 500 ms
 		}
 		// turn off LED R after timeout
@@ -204,6 +204,13 @@ func main() {
 			t.Update()
 			d.Update()
 		} else {
+			if t.FactoryReset() {
+				println("MAIN: Factory reset requested, resetting flash data and restarting...")
+				time.Sleep(1 * time.Second)
+				f = &Flash{}       // reset flash object
+				f.Store()          // store empty object
+				machine.CPUReset() // restart device
+			}
 			flashStore()
 		}
 		pinDebugData.Low()
@@ -241,27 +248,44 @@ func flashLoad() {
 	resetGyrCalOffsets := !pinResetCenter.Get()
 	// wait until button is released
 	for !pinResetCenter.Get() {
-		time.Sleep(10 * time.Millisecond)
+		println("FLASH: factory reset requested, release reset pin to continue...")
+		time.Sleep(1 * time.Second)
 	}
 	// clear data on flash, "f" object is empty at this point
 	if resetGyrCalOffsets {
+		println("FLASH: resetting to factory defaults")
 		err := f.Store()
 		if err != nil {
-			println(time.Now().Unix(), err.Error())
+			println("FLASH: store error:", err.Error())
 		}
 	}
 
 	// load calibration data, can be empty
 	err := f.Load()
+
+	// handle corrupted data
 	if err != nil {
-		println(time.Now().Unix(), err.Error())
+		if err == errFlashWrongChecksum || err == errFlashWrongLength {
+			println("FLASH: data corrupted, resetting to factory defaults")
+			err := f.Store()
+			if err != nil {
+				println("FLASH: store error:", err.Error())
+			}
+		} else {
+			println("FLASH: load error:", err.Error())
+		}
 	}
 
 	// set offsets, they are either actual previous calibration result or zeroes inially and in case of error
+	println("FLASH: Gyro calibration offsets read:", f.roll, f.pitch, f.yaw)
 	o.SetOffsets(f.roll, f.pitch, f.yaw) // zeroes at worst
 
-	// set device name from flash
-	deviceName = f.Name()
+	// set device name from flash, when not empty
+	name := f.Name()
+	if len(name) > 0 {
+		deviceName = name
+		println("FLASH: Device name read:", name, " length:", len(name))
+	}
 }
 
 // Store only when difference is large enough
@@ -269,18 +293,20 @@ func flashStore() {
 	roll, pitch, yaw := o.Offsets()
 	if abs(f.roll-roll) > flashStoreTreshold || abs(f.pitch-pitch) > flashStoreTreshold || abs(f.yaw-yaw) > flashStoreTreshold {
 		f.roll, f.pitch, f.yaw = roll, pitch, yaw
+		println("FLASH: Storing calibration:", f.roll, f.pitch, f.yaw)
 		err := f.Store()
 		if err != nil {
-			println(time.Now().Unix(), err.Error())
+			println("FLASH: store error:", err.Error())
 		}
 	}
-	tName := t.Name()
-	if tName != deviceName {
+	tName, changed := t.Name()
+	if changed && tName != deviceName {
 		deviceName = tName
 		f.SetName(tName)
+		println("FLASH: Device name write:", deviceName)
 		err := f.Store()
 		if err != nil {
-			println(time.Now().Unix(), err.Error())
+			println("FLASH: store error:", err.Error())
 		}
 	}
 }
