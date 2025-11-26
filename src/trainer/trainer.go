@@ -12,6 +12,7 @@ type Trainer interface {
 	Address() string
 
 	// Remote controls
-	Reset() bool
-	Name() string
+	OrientationReset() bool // whether an orientation reset was requested
+	FactoryReset() bool     // whether a factory reset was requested
+	Name() (string, bool)   // new name and whether it changed
 }

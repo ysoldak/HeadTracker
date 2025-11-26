@@ -6,8 +6,18 @@ import (
 )
 
 var errFlashWrongChecksum = errors.New("wrong checksum reading data from flash")
+var errFlashWrongLength = errors.New("unsupported flash data length")
+
+const (
+	FLASH_HEADER_LENGTH   = 2
+	FLASH_GYRO_CAL_LENGTH = 3 * 4
+	FLASH_NAME_LENGTH     = 16
+	FLASH_LENGTH          = FLASH_HEADER_LENGTH + FLASH_GYRO_CAL_LENGTH + FLASH_NAME_LENGTH // checksum, length, roll, pitch, yaw, name
+)
 
 type Flash struct {
+	checksum         byte
+	length           byte
 	roll, pitch, yaw int32
 	name             [16]byte
 }
@@ -37,8 +47,7 @@ func (fd *Flash) IsEmpty() bool {
 }
 
 func (fd *Flash) Load() error {
-
-	data := make([]byte, 3*4+16+1) // each calibration parameter is int32, plus name, plus checksum
+	data := make([]byte, FLASH_LENGTH)
 	_, err := machine.Flash.ReadAt(data, 0)
 	if err != nil {
 		return err
@@ -53,27 +62,42 @@ func (fd *Flash) Load() error {
 		return errFlashWrongChecksum
 	}
 
-	fd.roll = toInt32(data[0:4])
-	fd.pitch = toInt32(data[4:8])
-	fd.yaw = toInt32(data[8:12])
-	copy(fd.name[:], data[12:28])
+	length := data[1]
+	if length == 0 || length > FLASH_LENGTH {
+		return errFlashWrongLength
+	}
+
+	if length >= FLASH_HEADER_LENGTH+FLASH_GYRO_CAL_LENGTH {
+		offset := FLASH_HEADER_LENGTH
+		fd.roll = toInt32(data[offset+0*4 : offset+1*4])
+		fd.pitch = toInt32(data[offset+1*4 : offset+2*4])
+		fd.yaw = toInt32(data[offset+2*4 : offset+3*4])
+	}
+	if length >= FLASH_HEADER_LENGTH+FLASH_GYRO_CAL_LENGTH+FLASH_NAME_LENGTH {
+		offset := FLASH_HEADER_LENGTH + FLASH_GYRO_CAL_LENGTH
+		copy(fd.name[:], data[offset:offset+FLASH_NAME_LENGTH])
+	}
 
 	return nil
 }
 
 func (fd *Flash) Store() error {
-	data := make([]byte, 3*4+16+1) // each calibration parameter is int32, plus name, plus checksum
-	fromInt32(data[0:4], fd.roll)
-	fromInt32(data[4:8], fd.pitch)
-	fromInt32(data[8:12], fd.yaw)
-	copy(data[12:28], fd.name[:])
+	data := make([]byte, FLASH_LENGTH)
+	data[1] = FLASH_LENGTH
+	// gyro calibration
+	fromInt32(data[FLASH_HEADER_LENGTH+0*4:FLASH_HEADER_LENGTH+1*4], fd.roll)
+	fromInt32(data[FLASH_HEADER_LENGTH+1*4:FLASH_HEADER_LENGTH+2*4], fd.pitch)
+	fromInt32(data[FLASH_HEADER_LENGTH+2*4:FLASH_HEADER_LENGTH+3*4], fd.yaw)
+	// name
+	nameOffset := FLASH_HEADER_LENGTH + FLASH_GYRO_CAL_LENGTH
+	copy(data[nameOffset:nameOffset+FLASH_NAME_LENGTH], fd.name[:])
 
-	// xor all bytes, including the last (it is zero anyway)
+	// xor all bytes, including the first (it is zero anyway)
 	checksum := byte(0)
 	for _, b := range data {
 		checksum ^= b
 	}
-	data[12] = checksum
+	data[0] = checksum
 
 	err := machine.Flash.EraseBlocks(0, 1)
 	if err != nil {

@@ -8,6 +8,13 @@ import (
 	"tinygo.org/x/bluetooth"
 )
 
+const STATE_DEVICE_NAME = 0xFF01
+
+const RUNTIME_COMMANDS = 0xFF41
+const RUNTIME_COMMANDS_COMPATIBILITY = 0xAFF2 // Cliff's Head Tracker reset command characteristic
+const RUNTIME_ORIENTATION_RESET = 'R'
+const RUNTIME_FACTORY_RESET = 'F'
+
 // Have to send this to master radio on connect otherwise high chance opentx para code will never receive "Connected" message
 // Since it looks for "Connected\r\n" and sometimes(?) bluetooth underlying layer on master radio
 // never sends "\r\n" and starts sending trainer data directly
@@ -25,8 +32,11 @@ type Para struct {
 	address  string
 	channels [8]uint16
 
-	resetRequested bool
-	name           string
+	orientationReset bool
+	factoryReset     bool
+
+	nameChanged bool
+	nameBytes   [16]byte // allocations are not allowed in bluetooth event handlers, so working with byte array
 }
 
 func NewPara() *Para {
@@ -39,7 +49,15 @@ func NewPara() *Para {
 }
 
 func (t *Para) Configure(name string) {
-	t.name = name
+	n := 0
+	for n < len(name) && n < len(t.nameBytes) {
+		t.nameBytes[n] = name[n]
+		n++
+	}
+	for n < len(t.nameBytes) {
+		t.nameBytes[n] = 0
+		n++
+	}
 
 	t.adapter.Enable()
 
@@ -115,36 +133,50 @@ func (t *Para) Configure(name string) {
 
 	// Commands
 	// R - reset orientation, compatible with Cliff's HT reset button
+	commandHandler := func(client bluetooth.Connection, offset int, value []byte) {
+		if len(value) == 1 && value[0] == RUNTIME_ORIENTATION_RESET {
+			t.orientationReset = true
+		}
+		if len(value) == 1 && value[0] == RUNTIME_FACTORY_RESET {
+			t.factoryReset = true
+		}
+	}
+	ff41 := bluetooth.CharacteristicConfig{
+		Handle:     nil,
+		UUID:       bluetooth.New16BitUUID(RUNTIME_COMMANDS),
+		Value:      []byte{},
+		Flags:      bluetooth.CharacteristicWritePermission,
+		WriteEvent: commandHandler,
+	}
+	// Compatibility with Cliff's Head Tracker
 	aff2 := bluetooth.CharacteristicConfig{
-		Handle: nil,
-		UUID:   bluetooth.New16BitUUID(0xAFF2),
-		Value:  []byte{},
-		Flags:  bluetooth.CharacteristicWritePermission,
-		WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
-			if len(value) == 1 && value[0] == 'R' {
-				t.resetRequested = true
-			}
-		},
+		Handle:     nil,
+		UUID:       bluetooth.New16BitUUID(RUNTIME_COMMANDS_COMPATIBILITY),
+		Value:      []byte{},
+		Flags:      bluetooth.CharacteristicWritePermission,
+		WriteEvent: commandHandler,
 	}
 
 	// Device Name
 	ff01 := bluetooth.CharacteristicConfig{
 		Handle: nil,
-		UUID:   bluetooth.New16BitUUID(0xFF01),
-		Value:  []byte(name),
+		UUID:   bluetooth.New16BitUUID(STATE_DEVICE_NAME),
+		Value:  []byte(name), // FIXME: this may become larger than 16 bytes if client writes more data
 		Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
 		WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
 			if len(value) == 0 {
 				return
 			}
-			if len(value) > 16 {
-				value = value[:16]
+			n := 0
+			for n < len(t.nameBytes) && n < len(value) {
+				t.nameBytes[n] = value[n]
+				n++
 			}
-			t.name = string(value)
-			t.adv.Configure(bluetooth.AdvertisementOptions{
-				LocalName:    t.name,
-				ServiceUUIDs: []bluetooth.UUID{bluetooth.New16BitUUID(0xFFF0)},
-			})
+			for n < len(t.nameBytes) {
+				t.nameBytes[n] = 0
+				n++
+			}
+			t.nameChanged = true
 		},
 	}
 
@@ -155,15 +187,16 @@ func (t *Para) Configure(name string) {
 			fff2,
 			fff3,
 			fff5,
-			fff6,
-			aff2,
-			ff01,
+			fff6, // channels data
+			ff01, // device name
+			ff41, // runtime commands from client
+			aff2, // for compatibility with Cliff's HT
 		},
 	})
 
 	t.adv = t.adapter.DefaultAdvertisement()
 	t.adv.Configure(bluetooth.AdvertisementOptions{
-		LocalName:    t.name,
+		LocalName:    string(t.nameBytes[:]),
 		ServiceUUIDs: []bluetooth.UUID{bluetooth.New16BitUUID(0xFFF0)},
 	})
 	t.adv.Start()
@@ -219,16 +252,35 @@ func (p *Para) SetChannel(n int, v uint16) {
 	p.channels[n] = v
 }
 
-func (p *Para) Reset() bool {
-	if p.resetRequested {
-		p.resetRequested = false
+func (p *Para) OrientationReset() bool {
+	if p.orientationReset {
+		p.orientationReset = false
 		return true
 	}
 	return false
 }
 
-func (p *Para) Name() string {
-	return p.name
+func (p *Para) FactoryReset() bool {
+	if p.factoryReset {
+		p.factoryReset = false
+		return true
+	}
+	return false
+}
+
+func (p *Para) Name() (string, bool) {
+	if p.nameChanged {
+		p.nameChanged = false
+		// update advertisement name only when changed
+		// can't do it in the write handler due to allocation restrictions
+		// we expect Name() to be called frequently in the main loop
+		p.adv.Configure(bluetooth.AdvertisementOptions{
+			LocalName:    string(p.nameBytes[:]),
+			ServiceUUIDs: []bluetooth.UUID{bluetooth.New16BitUUID(0xFFF0)},
+		})
+		return string(p.nameBytes[:]), true
+	}
+	return "", false
 }
 
 // -- PARA Protocol ------------------------------------------------------------
