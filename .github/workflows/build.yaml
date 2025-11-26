@@ -40,9 +40,9 @@ jobs:
     - name: Build ${{ matrix.target }} binary
       run: make TARGET=${{ matrix.target }} build
 
-    - name: Store binaries
-      uses: actions/upload-artifact@v4
-      with:
-        name: binaries-${{ matrix.target }}-tinygo-${{ matrix.tinygo-version }}
-        path: build/*
-        retention-days: 14
+    # - name: Store binaries
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: binaries-${{ matrix.target }}-tinygo-${{ matrix.tinygo-version }}
+    #     path: build/*
+    #     retention-days: 14
