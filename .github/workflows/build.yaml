@@ -9,12 +9,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        tinygo-version: ['0.39.0', 'dev']
+        tinygo-version: ['tinygo:0.39.0', 'tinygo-dev:latest']
         target:
           - xiao-ble
           - nano-33-ble-s140v6-uf2
     container:
-      image: ghcr.io/tinygo-org/tinygo:${{ matrix.tinygo-version }}
+      image: ghcr.io/tinygo-org/${{ matrix.tinygo-version }}
       options: --user root
     steps:
 
