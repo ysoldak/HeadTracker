@@ -150,7 +150,7 @@ func main() {
 		}
 
 		if time.Now().After(stopTime) && !f.IsEmpty() { // when had some calibration already, force it if was not able to find better quickly
-			o.SetOffsets(f.roll, f.pitch, f.yaw)
+			o.SetOffsets(f.gyrCalOffsets)
 			o.SetStable(true)
 		}
 		if o.Stable() {
@@ -277,8 +277,8 @@ func flashLoad() {
 	}
 
 	// set offsets, they are either actual previous calibration result or zeroes inially and in case of error
-	println("FLASH: Gyro calibration offsets read:", f.roll, f.pitch, f.yaw)
-	o.SetOffsets(f.roll, f.pitch, f.yaw) // zeroes at worst
+	println("FLASH: Gyro calibration offsets read:", f.gyrCalOffsets[0], f.gyrCalOffsets[1], f.gyrCalOffsets[2])
+	o.SetOffsets(f.gyrCalOffsets) // zeroes at worst
 
 	// set device name from flash, when not empty
 	name := f.Name()
@@ -290,10 +290,10 @@ func flashLoad() {
 
 // Store only when difference is large enough
 func flashStore() {
-	roll, pitch, yaw := o.Offsets()
-	if abs(f.roll-roll) > flashStoreTreshold || abs(f.pitch-pitch) > flashStoreTreshold || abs(f.yaw-yaw) > flashStoreTreshold {
-		f.roll, f.pitch, f.yaw = roll, pitch, yaw
-		println("FLASH: Storing calibration:", f.roll, f.pitch, f.yaw)
+	offsets := o.Offsets()
+	if abs(f.gyrCalOffsets[0]-offsets[0]) > flashStoreTreshold || abs(f.gyrCalOffsets[1]-offsets[1]) > flashStoreTreshold || abs(f.gyrCalOffsets[2]-offsets[2]) > flashStoreTreshold {
+		f.gyrCalOffsets = offsets
+		println("FLASH: Storing calibration:", f.gyrCalOffsets[0], f.gyrCalOffsets[1], f.gyrCalOffsets[2])
 		err := f.Store()
 		if err != nil {
 			println("FLASH: store error:", err.Error())
@@ -348,8 +348,8 @@ func trace(iter uint16) {
 	if iter%TRACE_COUNT == 0 { // print out state
 		channels := t.Channels()
 		r, p, y := channels[0], channels[1], channels[2]
-		rc, pc, yc := o.Offsets()
+		offsets := o.Offsets()
 		runtime.ReadMemStats(&ms)
-		println(deviceName, "|", t.Address(), "| [", r, ",", p, ",", y, "] (", rc, ",", pc, ",", yc, ")", ms.HeapInuse)
+		println(deviceName, "|", t.Address(), "| [", r, ",", p, ",", y, "] (", offsets[0], ",", offsets[1], ",", offsets[2], ")", ms.HeapInuse)
 	}
 }

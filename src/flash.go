@@ -12,14 +12,14 @@ const (
 	FLASH_HEADER_LENGTH   = 2
 	FLASH_GYRO_CAL_LENGTH = 3 * 4
 	FLASH_NAME_LENGTH     = 16
-	FLASH_LENGTH          = FLASH_HEADER_LENGTH + FLASH_GYRO_CAL_LENGTH + FLASH_NAME_LENGTH // checksum, length, roll, pitch, yaw, name
+	FLASH_LENGTH          = FLASH_HEADER_LENGTH + FLASH_GYRO_CAL_LENGTH + FLASH_NAME_LENGTH // checksum, length, gyro cal offsets, name
 )
 
 type Flash struct {
-	checksum         byte
-	length           byte
-	roll, pitch, yaw int32
-	name             [16]byte
+	checksum      byte
+	length        byte
+	gyrCalOffsets [3]int32
+	name          [16]byte
 }
 
 func (fd *Flash) SetName(name string) {
@@ -43,7 +43,7 @@ func (fd *Flash) Name() string {
 }
 
 func (fd *Flash) IsEmpty() bool {
-	return fd.roll == 0 && fd.pitch == 0 && fd.yaw == 0
+	return fd.gyrCalOffsets[0] == 0 && fd.gyrCalOffsets[1] == 0 && fd.gyrCalOffsets[2] == 0
 }
 
 func (fd *Flash) Load() error {
@@ -69,9 +69,9 @@ func (fd *Flash) Load() error {
 
 	if length >= FLASH_HEADER_LENGTH+FLASH_GYRO_CAL_LENGTH {
 		offset := FLASH_HEADER_LENGTH
-		fd.roll = toInt32(data[offset+0*4 : offset+1*4])
-		fd.pitch = toInt32(data[offset+1*4 : offset+2*4])
-		fd.yaw = toInt32(data[offset+2*4 : offset+3*4])
+		for i := range fd.gyrCalOffsets {
+			fd.gyrCalOffsets[i] = toInt32(data[offset+i*4 : offset+(i+1)*4])
+		}
 	}
 	if length >= FLASH_HEADER_LENGTH+FLASH_GYRO_CAL_LENGTH+FLASH_NAME_LENGTH {
 		offset := FLASH_HEADER_LENGTH + FLASH_GYRO_CAL_LENGTH
@@ -85,9 +85,9 @@ func (fd *Flash) Store() error {
 	data := make([]byte, FLASH_LENGTH)
 	data[1] = FLASH_LENGTH
 	// gyro calibration
-	fromInt32(data[FLASH_HEADER_LENGTH+0*4:FLASH_HEADER_LENGTH+1*4], fd.roll)
-	fromInt32(data[FLASH_HEADER_LENGTH+1*4:FLASH_HEADER_LENGTH+2*4], fd.pitch)
-	fromInt32(data[FLASH_HEADER_LENGTH+2*4:FLASH_HEADER_LENGTH+3*4], fd.yaw)
+	for i := range fd.gyrCalOffsets {
+		fromInt32(data[FLASH_HEADER_LENGTH+i*4:FLASH_HEADER_LENGTH+(i+1)*4], fd.gyrCalOffsets[i])
+	}
 	// name
 	nameOffset := FLASH_HEADER_LENGTH + FLASH_GYRO_CAL_LENGTH
 	copy(data[nameOffset:nameOffset+FLASH_NAME_LENGTH], fd.name[:])
