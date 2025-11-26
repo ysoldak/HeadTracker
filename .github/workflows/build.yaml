@@ -37,6 +37,9 @@ jobs:
       run: |
         go mod tidy
 
+    - name: Softdevice
+      run: make softdevice
+
     - name: Build ${{ matrix.target }} binary
       run: make TARGET=${{ matrix.target }} build
 
