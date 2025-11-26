@@ -8,6 +8,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         tinygo-version: ['tinygo:0.39.0', 'tinygo-dev:latest']
         target:
