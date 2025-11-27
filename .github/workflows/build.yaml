@@ -58,6 +58,6 @@ jobs:
     - name: Store binaries
       uses: actions/upload-artifact@v4
       with:
-        name: ht-${{ matrix.target }}-${{ env.TINYGO_VERSION_SAFE }}
+        name: ht_${{ matrix.target }}_${{ env.TINYGO_VERSION_SAFE }}
         path: build/*
         retention-days: 14
