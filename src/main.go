@@ -25,7 +25,7 @@ const (
 	radToMs = 512.0 / math.Pi
 )
 
-const flashStoreTreshold = 10_000
+const flashStoreTreshold = 100_000
 
 var (
 	d *display.Display
@@ -33,11 +33,14 @@ var (
 	i *orientation.IMU
 	o *orientation.Orientation
 	f *Flash
+	s *SystemHandler
 )
 
 var (
 	tickPeriod *time.Ticker
 )
+
+var channels = [3]uint16{1500, 1500, 1500}
 
 func init() {
 
@@ -56,24 +59,30 @@ func init() {
 		}
 	}
 
+	s = &SystemHandler{
+		name: "HT",
+	}
+
 	// Trainer (Bluetooth or PPM)
 	if !pinSelectPPM.Get() { // Low means connected to GND => PPM output requested
 		t = trainer.NewPPM(pinOutputPPM) // PPM wire
 	} else {
-		t = trainer.NewPara()
+		t = trainer.NewPara(s)
 	}
 
 	// Display
 	d = display.New()
 	d.Configure()
 
-	f = &Flash{}
-
-	tickPeriod = time.NewTicker(PERIOD * time.Millisecond)
+	f = NewFlash()
 
 }
 
 func main() {
+
+	// time.Sleep(3 * time.Second)
+
+	tickPeriod = time.NewTicker(PERIOD * time.Millisecond)
 
 	batVolts, err := batteryVoltage()
 	batString := ""
@@ -141,7 +150,7 @@ func main() {
 		}
 
 		if time.Now().After(stopTime) && !f.IsEmpty() { // when had some calibration already, force it if was not able to find better quickly
-			o.SetOffsets(f.roll, f.pitch, f.yaw)
+			o.SetOffsets(f.gyrCalOffsets)
 			o.SetStable(true)
 		}
 		if o.Stable() {
@@ -155,8 +164,8 @@ func main() {
 	// store calibration values
 	flashStore()
 
-	// enable trainer after flash operations (bluetooth conflicts with flash)
-	t.Configure("HT " + Version)
+	// start trainer after flash (device name may be on flash)
+	t.Configure()
 	t.Start()
 
 	// switch display to normal mode
@@ -174,12 +183,14 @@ func main() {
 
 		pinDebugMain.Set(!pinDebugMain.Get())
 
-		if !pinResetCenter.Get() || (iter%400 == 0 && i.ReadTap() || t.ResetRequested()) { // Button pressed OR [double] tap registered (shall not read register more frequently than double tap duration)
+		// Button pressed OR [double] tap registered (shall not read register more frequently than double tap duration)
+		if !pinResetCenter.Get() || (iter%400 == 0 && i.ReadTap()) {
 			o.Reset()
 			on(ledR)
-			println("HT", Version, "|", t.Address(), "| [ Orientation reset  ]")
+			println("MAIN: Orientation reset")
 			offLedRIter = (int(iter) + 500) % 10_000 // keep LED on for 500 ms
 		}
+		// turn off LED R after timeout
 		if offLedRIter >= 0 && int(iter) == offLedRIter {
 			off(ledR)
 			offLedRIter = -1
@@ -190,12 +201,17 @@ func main() {
 		pinDebugData.High()
 		if iter%20 == 0 {
 			for i, a := range o.Angles() {
-				c := angleToChannel(a)
-				t.SetChannel(i, c)
-				d.SetBar(byte(i), int16(1500-c)/10, false)
+				channels[i] = angleToChannel(a)
+				idx := channelIndex(i)
+				if idx >= 0 {
+					t.SetChannel(idx, channels[i])
+					d.SetBar(byte(i), int16(1500-channels[i])/10, false)
+				}
 			}
 			t.Update()
 			d.Update()
+		} else {
+			flashStore()
 		}
 		pinDebugData.Low()
 
@@ -225,6 +241,32 @@ func angleToChannel(angle float64) uint16 {
 	return result
 }
 
+var orderMatrix = [6][3]byte{
+	{0, 1, 2},
+	{0, 2, 1},
+	{1, 0, 2},
+	{1, 2, 0},
+	{2, 0, 1},
+	{2, 1, 0},
+}
+
+func channelIndex(idx int) int {
+	if (s.channelsConfig[2]>>idx)&0x01 == 0 {
+		return -1 // disabled
+	}
+
+	offset := int(s.channelsConfig[0])
+	order := s.channelsConfig[1]
+
+	for i := 0; i < 3; i++ {
+		if orderMatrix[order][i] == byte(idx) {
+			return (offset + i) % 8
+		}
+	}
+
+	return idx % 8 // fallback, should not happen
+}
+
 // --- Flash ----
 
 func flashLoad() {
@@ -232,35 +274,69 @@ func flashLoad() {
 	resetGyrCalOffsets := !pinResetCenter.Get()
 	// wait until button is released
 	for !pinResetCenter.Get() {
-		time.Sleep(10 * time.Millisecond)
+		println("FLASH: factory reset requested, release reset pin to continue...")
+		time.Sleep(1 * time.Second)
 	}
 	// clear data on flash, "f" object is empty at this point
 	if resetGyrCalOffsets {
+		println("FLASH: resetting to factory defaults")
 		err := f.Store()
 		if err != nil {
-			println(time.Now().Unix(), err.Error())
+			println("FLASH: store error:", err.Error())
 		}
 	}
 
 	// load calibration data, can be empty
 	err := f.Load()
+
+	// handle corrupted data
 	if err != nil {
-		println(time.Now().Unix(), err.Error())
+		if err == errFlashWrongChecksum || err == errFlashWrongLength {
+			println("FLASH: data corrupted, resetting to factory defaults")
+			err := f.Store()
+			if err != nil {
+				println("FLASH: store error:", err.Error())
+			}
+		} else {
+			println("FLASH: load error:", err.Error())
+		}
 	}
 
 	// set offsets, they are either actual previous calibration result or zeroes inially and in case of error
-	o.SetOffsets(f.roll, f.pitch, f.yaw) // zeroes at worst
+	println("FLASH: Gyro calibration offsets read:", f.gyrCalOffsets[0], f.gyrCalOffsets[1], f.gyrCalOffsets[2])
+	o.SetOffsets(f.gyrCalOffsets) // zeroes at worst
+
+	// set device name from flash, when not empty
+	name := f.Name()
+	if len(name) > 0 {
+		s.name = name
+		println("FLASH: Device name read:", name, " length:", len(name))
+	}
+
+	// set channels configuration from flash
+	s.channelsConfig[0] = f.channels[0]
+	s.channelsConfig[1] = f.channels[1]
+	s.channelsConfig[2] = f.channels[2]
+	println("FLASH: Channels configuration read: offset =", f.channels[0], " order =", f.channels[1], " enabled =", f.channels[2])
 }
 
 // Store only when difference is large enough
 func flashStore() {
-	roll, pitch, yaw := o.Offsets()
-	if abs(f.roll-roll) > flashStoreTreshold || abs(f.pitch-pitch) > flashStoreTreshold || abs(f.yaw-yaw) > flashStoreTreshold {
-		f.roll, f.pitch, f.yaw = roll, pitch, yaw
-		err := f.Store()
-		if err != nil {
-			println(time.Now().Unix(), err.Error())
+	belowThreshold := true
+	for i := range o.Offsets() {
+		if abs(f.gyrCalOffsets[i]-o.Offsets()[i]) > flashStoreTreshold {
+			belowThreshold = false
+			break
 		}
+	}
+	if belowThreshold {
+		return
+	}
+	f.gyrCalOffsets = o.Offsets()
+	println("FLASH: Storing calibration:", f.gyrCalOffsets[0], f.gyrCalOffsets[1], f.gyrCalOffsets[2])
+	err := f.Store()
+	if err != nil {
+		println("FLASH: store error:", err.Error())
 	}
 }
 
@@ -299,10 +375,9 @@ var ms = runtime.MemStats{}
 
 func trace(iter uint16) {
 	if iter%TRACE_COUNT == 0 { // print out state
-		channels := t.Channels()
-		r, p, y := channels[0], channels[1], channels[2]
-		rc, pc, yc := o.Offsets()
+		c0, c1, c2 := channels[0], channels[1], channels[2]
+		o := o.Offsets()
 		runtime.ReadMemStats(&ms)
-		println("HT", Version, "|", t.Address(), "| [", r, ",", p, ",", y, "] (", rc, ",", pc, ",", yc, ")", ms.HeapInuse)
+		println(s.name, "|", t.Address(), "| [", c0, ",", c1, ",", c2, "] (", o[0], ",", o[1], ",", o[2], ")", ms.HeapInuse)
 	}
 }

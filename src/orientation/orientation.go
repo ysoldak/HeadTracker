@@ -100,15 +100,13 @@ func (o *Orientation) SetStable(stable bool) {
 	o.imu.gyrCal.Stable = stable
 }
 
-func (o *Orientation) Offsets() (roll, pitch, yaw int32) {
-	return o.imu.gyrCal.Offset[0], o.imu.gyrCal.Offset[1], o.imu.gyrCal.Offset[2]
+func (o *Orientation) Offsets() (offsets [3]int32) {
+	return o.imu.gyrCal.Offset
 }
 
-func (o *Orientation) SetOffsets(roll, pitch, yaw int32) {
-	o.imu.gyrCal.Offset[0] = roll
-	o.imu.gyrCal.Offset[1] = pitch
-	o.imu.gyrCal.Offset[2] = yaw
-	if roll == 0 && pitch == 0 && yaw == 0 {
+func (o *Orientation) SetOffsets(offsets [3]int32) {
+	o.imu.gyrCal.Offset = offsets
+	if offsets[0] == 0 && offsets[1] == 0 && offsets[2] == 0 {
 		return
 	}
 	// calibration shall skip aggressive first force adjustments when data is non-zero

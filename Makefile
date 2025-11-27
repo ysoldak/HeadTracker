@@ -39,9 +39,10 @@ clean:
 
 softdevice:
 	@mkdir -p softdevice
-	@bluetooth_ver=$$(cat go.mod | grep "bluetooth v"| sed "s/.* //"); \
-	ln -s $(HOME)/go/pkg/mod/tinygo.org/x/bluetooth@$$bluetooth_ver/s140_nrf52_6.1.1 ./softdevice/; \
-	ln -s $(HOME)/go/pkg/mod/tinygo.org/x/bluetooth@$$bluetooth_ver/s140_nrf52_7.3.0 ./softdevice/
+	gopath=$$(tinygo env | grep GOPATH | sed 's/GOPATH="\(.*\)"/\1/'); \
+	bluetooth_ver=$$(cat go.mod | grep "bluetooth v"| sed "s/.* //"); \
+	ln -s $$gopath/pkg/mod/tinygo.org/x/bluetooth@$$bluetooth_ver/s140_nrf52_6.1.1 ./softdevice/; \
+	ln -s $$gopath/pkg/mod/tinygo.org/x/bluetooth@$$bluetooth_ver/s140_nrf52_7.3.0 ./softdevice/
 
 build: softdevice
 	@mkdir -p build
