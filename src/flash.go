@@ -12,14 +12,27 @@ const (
 	FLASH_HEADER_LENGTH   = 2
 	FLASH_GYRO_CAL_LENGTH = 3 * 4
 	FLASH_NAME_LENGTH     = 16
-	FLASH_LENGTH          = FLASH_HEADER_LENGTH + FLASH_GYRO_CAL_LENGTH + FLASH_NAME_LENGTH // checksum, length, gyro cal offsets, name
+	FLASH_CHANNELS_LENGTH = 3
 )
+
+const FLASH_LENGTH = FLASH_HEADER_LENGTH + FLASH_GYRO_CAL_LENGTH + FLASH_NAME_LENGTH + FLASH_CHANNELS_LENGTH
 
 type Flash struct {
 	checksum      byte
 	length        byte
 	gyrCalOffsets [3]int32
 	name          [16]byte
+
+	// 0 - index of first channel that contains ht data, wraps around 8 output channels
+	// 1 - channels order: 0=123, 1=132, ..., 6=321
+	// 2 - channels enabled flags: 0b00000XXX, X=1 if channel is enabled, X=0 if disabled
+	channels [3]byte
+}
+
+func NewFlash() *Flash {
+	flash := Flash{}
+	flash.channels[2] = 0b00000111 // all 3 channels enabled by default
+	return &flash
 }
 
 func (fd *Flash) SetName(name string) {
@@ -67,15 +80,21 @@ func (fd *Flash) Load() error {
 		return errFlashWrongLength
 	}
 
-	if length >= FLASH_HEADER_LENGTH+FLASH_GYRO_CAL_LENGTH {
-		offset := FLASH_HEADER_LENGTH
+	offset := FLASH_HEADER_LENGTH
+	if length >= byte(offset+FLASH_GYRO_CAL_LENGTH) {
 		for i := range fd.gyrCalOffsets {
 			fd.gyrCalOffsets[i] = toInt32(data[offset+i*4 : offset+(i+1)*4])
 		}
 	}
-	if length >= FLASH_HEADER_LENGTH+FLASH_GYRO_CAL_LENGTH+FLASH_NAME_LENGTH {
-		offset := FLASH_HEADER_LENGTH + FLASH_GYRO_CAL_LENGTH
+
+	offset += FLASH_GYRO_CAL_LENGTH
+	if length >= byte(offset+FLASH_NAME_LENGTH) {
 		copy(fd.name[:], data[offset:offset+FLASH_NAME_LENGTH])
+	}
+
+	offset += FLASH_NAME_LENGTH
+	if length >= byte(offset+FLASH_CHANNELS_LENGTH) {
+		copy(fd.channels[:], data[offset:offset+FLASH_CHANNELS_LENGTH])
 	}
 
 	return nil
@@ -91,6 +110,10 @@ func (fd *Flash) Store() error {
 	// name
 	nameOffset := FLASH_HEADER_LENGTH + FLASH_GYRO_CAL_LENGTH
 	copy(data[nameOffset:nameOffset+FLASH_NAME_LENGTH], fd.name[:])
+
+	// channels
+	channelsOffset := FLASH_HEADER_LENGTH + FLASH_GYRO_CAL_LENGTH + FLASH_NAME_LENGTH
+	copy(data[channelsOffset:channelsOffset+FLASH_CHANNELS_LENGTH], fd.channels[:])
 
 	// xor all bytes, including the first (it is zero anyway)
 	checksum := byte(0)
