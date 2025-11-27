@@ -51,7 +51,7 @@ func NewPPM(pin machine.Pin) *PPM {
 	return &ppmInstance
 }
 
-func (ppm *PPM) Configure(_ string) {
+func (ppm *PPM) Configure() {
 	ppm.pin.Low()
 	configurePin()
 	configureTimers()
@@ -74,24 +74,8 @@ func (ppm *PPM) Address() string {
 	return "    PPM OUTPUT"
 }
 
-func (ppm *PPM) Channels() []uint16 {
-	return ppm.channels[:]
-}
-
 func (ppm *PPM) SetChannel(n int, v uint16) {
 	ppm.channels[n] = v
-}
-
-func (ppm *PPM) OrientationReset() bool {
-	return false
-}
-
-func (ppm *PPM) FactoryReset() bool {
-	return false
-}
-
-func (ppm *PPM) Name() (string, bool) {
-	return "", false
 }
 
 // --- Configure --------------------------------------------------------------
