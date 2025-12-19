@@ -1,18 +1,23 @@
 name: Build binary
 
 on:
-  push:
-    branches:
-      - master
   pull_request:
-    branches:
-      - master
+    branches: [ master ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        tinygo-version: 
+        - 'tinygo:0.40.1'
+        - 'tinygo-dev:latest'
+        target:
+        - xiao-ble
+        - nano-33-ble-s140v6-uf2
     container:
-      image: ghcr.io/tinygo-org/tinygo:0.39.0
+      image: ghcr.io/tinygo-org/${{ matrix.tinygo-version }}
       options: --user root
     steps:
 
@@ -34,15 +39,24 @@ jobs:
       run: |
         go mod tidy
 
-    - name: Build XIAO BLE Sense binary
-      run: make TARGET=xiao-ble build
+    - name: Clean
+      run: make clean
 
-    - name: Build Nano 33 BLE binary
-      run: make TARGET=nano-33-ble-s140v6-uf2 build
+    - name: Softdevice
+      run: make softdevice
+
+    - name: Build ${{ matrix.target }} binary
+      run: make TARGET=${{ matrix.target }} build
+
+    - name: Set TinyGo version for artifact
+      shell: bash
+      run: |
+        TINYGO_VERSION=${{ matrix.tinygo-version }}
+        echo "TINYGO_VERSION_SAFE=${TINYGO_VERSION//:/-}" >> $GITHUB_ENV
 
     - name: Store binaries
       uses: actions/upload-artifact@v4
       with:
-        name: binaries
+        name: ht_${{ matrix.target }}_${{ env.TINYGO_VERSION_SAFE }}
         path: build/*
         retention-days: 14
