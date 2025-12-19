@@ -8,7 +8,7 @@ jobs:
   upload:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/tinygo-org/tinygo:0.39.0
+      image: ghcr.io/tinygo-org/tinygo:0.40.1
       options: --user root
     steps:
 
@@ -16,10 +16,6 @@ jobs:
       run: |
         apt-get update
         apt-get install -y make
-
-    - name: Work around CVE-2022-24765
-      # We're not on a multi-user machine, so this is safe.
-      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
     - name: Checkout
       uses: actions/checkout@v4
