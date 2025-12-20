@@ -18,26 +18,35 @@ type Para struct {
 	adv        *bluetooth.Advertisement
 	fff6Handle bluetooth.Characteristic
 
+	name            string
+	callbackHandler CallbackHandler
+
 	buffer    [20]byte
 	sendAfter time.Time
 
 	paired   bool
-	address  string
 	channels [8]uint16
 
 	resetRequested bool
 }
 
-func NewPara() *Para {
+type CallbackHandler interface {
+	OnConnect()
+	OnDisconnect()
+	OnOrientationReset()
+}
+
+func NewPara(name string, callbackHandler CallbackHandler) *Para {
 	return &Para{
-		adapter:  bluetooth.DefaultAdapter,
-		paired:   false,
-		address:  "B1:6B:00:B5:BA:BE",
-		channels: [8]uint16{1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500},
+		adapter:         bluetooth.DefaultAdapter,
+		name:            name,
+		callbackHandler: callbackHandler,
+		paired:          false,
+		channels:        [8]uint16{1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500},
 	}
 }
 
-func (t *Para) Configure(name string) {
+func (t *Para) Start() string {
 	t.adapter.Enable()
 
 	sysid := bluetooth.CharacteristicConfig{
@@ -138,13 +147,10 @@ func (t *Para) Configure(name string) {
 
 	t.adv = t.adapter.DefaultAdvertisement()
 	t.adv.Configure(bluetooth.AdvertisementOptions{
-		LocalName:    name,
+		LocalName:    t.name,
 		ServiceUUIDs: []bluetooth.UUID{bluetooth.New16BitUUID(0xFFF0)},
 	})
 	t.adv.Start()
-
-	addr, _ := t.adapter.Address()
-	t.address = addr.MAC.String()
 
 	t.adapter.SetConnectHandler(func(device bluetooth.Device, connected bool) {
 		if connected {
@@ -152,18 +158,33 @@ func (t *Para) Configure(name string) {
 			setSoftDeviceSystemAttributes()               // force enable notify for fff6
 			t.fff6Handle.Write(bootBuffer)                // send '\r\n', it helps remote master switch to receiveTrainer state
 			t.paired = true
+			t.callbackHandler.OnConnect()
 		} else {
 			t.paired = false
+			t.callbackHandler.OnDisconnect()
 		}
 	})
 
+	go func() {
+		ticker := time.NewTicker(20 * time.Millisecond)
+		for range ticker.C {
+
+			t.update()
+
+			if t.resetRequested {
+				t.resetRequested = false
+				t.callbackHandler.OnOrientationReset()
+			}
+
+		}
+	}()
+
+	addr, _ := t.adapter.Address()
+	return addr.MAC.String()
+
 }
 
-func (t *Para) Start() {
-	// no-op
-}
-
-func (t *Para) Update() {
+func (t *Para) update() {
 	if !t.paired {
 		return
 	}
@@ -173,33 +194,12 @@ func (t *Para) Update() {
 	size := t.encode()
 	n, err := t.fff6Handle.Write(t.buffer[:size])
 	if err != nil {
-		println(err.Error())
-		println(n)
+		println("FFF6 write error:", err.Error(), n)
 	}
-}
-
-func (p *Para) Paired() bool {
-	return p.paired
-}
-
-func (p *Para) Address() string {
-	return p.address
-}
-
-func (p *Para) Channels() []uint16 {
-	return p.channels[:3]
 }
 
 func (p *Para) SetChannel(n int, v uint16) {
 	p.channels[n] = v
-}
-
-func (p *Para) ResetRequested() bool {
-	if p.resetRequested {
-		p.resetRequested = false
-		return true
-	}
-	return false
 }
 
 // -- PARA Protocol ------------------------------------------------------------

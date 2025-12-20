@@ -51,39 +51,19 @@ func NewPPM(pin machine.Pin) *PPM {
 	return &ppmInstance
 }
 
-func (ppm *PPM) Configure(_ string) {
+func (ppm *PPM) Start() string {
 	ppm.pin.Low()
 	configurePin()
 	configureTimers()
 	configurePpi()
-}
 
-func (ppm *PPM) Start() {
 	ppmTimerLow.TASKS_START.Set(1)
-}
 
-func (ppm *PPM) Update() {
-	// no-op
-}
-
-func (ppm *PPM) Paired() bool {
-	return true
-}
-
-func (ppm *PPM) Address() string {
 	return "    PPM OUTPUT"
-}
-
-func (ppm *PPM) Channels() []uint16 {
-	return ppm.channels[:]
 }
 
 func (ppm *PPM) SetChannel(n int, v uint16) {
 	ppm.channels[n] = v
-}
-
-func (ppm *PPM) ResetRequested() bool {
-	return false
 }
 
 // --- Configure --------------------------------------------------------------
