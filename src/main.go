@@ -14,11 +14,12 @@ import (
 var Version string
 
 const (
-	PERIOD           = 10
-	BLINK_MAIN_COUNT = 500
-	BLINK_WARM_COUNT = 125
-	BLINK_PARA_COUNT = 250
-	TRACE_COUNT      = 1000
+	PERIOD           = 20   // 20000us -- budget for main loop to ensure stable timing for sensor fusion
+	DISPLAY_COUNT    = 100  // update display every 100ms, with offset of one period to avoid clashing with tracing
+	BLINK_MAIN_COUNT = 500  // main loop indicator
+	BLINK_WARM_COUNT = 100  // warm up / calibration indicator
+	BLINK_PARA_COUNT = 200  // para (bluetooth) state indicator
+	TRACE_COUNT      = 1000 // tracing to serial output, every 1 second
 )
 
 const (
@@ -136,7 +137,7 @@ func main() {
 		iter++
 		iter %= 10_000
 
-		if iter%10 == 0 {
+		if iter%DISPLAY_COUNT == 0 {
 			d.Update()
 		}
 
@@ -174,6 +175,7 @@ func main() {
 
 		pinDebugMain.Set(!pinDebugMain.Get())
 
+		// check for reset request
 		if !pinResetCenter.Get() || (iter%400 == 0 && i.ReadTap() || t.ResetRequested()) { // Button pressed OR [double] tap registered (shall not read register more frequently than double tap duration)
 			o.Reset()
 			on(ledR)
@@ -185,19 +187,25 @@ func main() {
 			offLedRIter = -1
 		}
 
-		o.Update()
-
+		// update orientation, every 20ms (~2360us)
 		pinDebugData.High()
-		if iter%20 == 0 {
-			for i, a := range o.Angles() {
-				c := angleToChannel(a)
-				t.SetChannel(i, c)
-				d.SetBar(byte(i), int16(1500-c)/10, false)
-			}
-			t.Update()
-			d.Update()
-		}
+		o.Update()
 		pinDebugData.Low()
+
+		// set channels, every 20ms (~300us)
+		for i, a := range o.Angles() {
+			c := angleToChannel(a)
+			t.SetChannel(i, c)
+			d.SetBar(byte(i), int16(1500-c)/10, false)
+		}
+		t.Update()
+
+		// update display, every 100ms, offset one period to avoid clash with tracing (~15000us)
+		if (iter-PERIOD) >= 0 && (iter-PERIOD)%DISPLAY_COUNT == 0 {
+			pinDebugData.High()
+			d.Update()
+			pinDebugData.Low()
+		}
 
 		// blink and trace
 		stateMain(iter)
@@ -298,11 +306,13 @@ func statePara(iter uint16) {
 var ms = runtime.MemStats{}
 
 func trace(iter uint16) {
-	if iter%TRACE_COUNT == 0 { // print out state
+	if iter%TRACE_COUNT == 0 { // print out state (~1000us)
+		pinDebugData.High()
 		channels := t.Channels()
 		r, p, y := channels[0], channels[1], channels[2]
 		rc, pc, yc := o.Offsets()
 		runtime.ReadMemStats(&ms)
 		println("HT", Version, "|", t.Address(), "| [", r, ",", p, ",", y, "] (", rc, ",", pc, ",", yc, ")", ms.HeapInuse)
+		pinDebugData.Low()
 	}
 }
