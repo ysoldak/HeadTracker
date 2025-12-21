@@ -30,15 +30,27 @@ const flashStoreTreshold = 10_000
 
 var (
 	d *display.Display
-	t trainer.Trainer
+	t Trainer
 	i *orientation.IMU
 	o *orientation.Orientation
 	f *Flash
+	h *BluetoothCallbackHandler
 )
+
+type Trainer interface {
+	Start() string
+	SetChannel(num int, v uint16)
+}
 
 var (
 	tickPeriod *time.Ticker
 )
+
+var state struct {
+	address   string
+	channels  [3]uint16
+	connected bool
+}
 
 func init() {
 
@@ -60,9 +72,15 @@ func init() {
 	// Trainer (Bluetooth or PPM)
 	if !pinSelectPPM.Get() { // Low means connected to GND => PPM output requested
 		t = trainer.NewPPM(pinOutputPPM) // PPM wire
+		state.address = "    PPM OUTPUT"
+		state.connected = true
 	} else {
-		t = trainer.NewPara()
+		t = trainer.NewPara("HT", &BluetoothCallbackHandler{})
+		state.address = "B1:6B:00:B5:BA:BE"
+		state.connected = false
 	}
+
+	state.channels = [3]uint16{1500, 1500, 1500}
 
 	// Display
 	d = display.New()
@@ -156,15 +174,14 @@ func main() {
 	// store calibration values
 	flashStore()
 
-	// enable trainer after flash operations (bluetooth conflicts with flash)
-	t.Configure("HT " + Version)
-	t.Start()
+	// start trainer after flash operations (bluetooth conflicts with flash)
+	state.address = t.Start()
 
 	// switch display to normal mode
 	d.RemoveText(nil)
-	d.AddText(1, t.Address())
+	d.AddText(1, state.address)
 	if pinSelectPPM.Get() { // high means Bluetooth
-		d.SetTextBlinkFunc(d.AddText(1, "  :  :  :  :  :  "), "", func() bool { return !t.Paired() })
+		d.SetTextBlinkFunc(d.AddText(1, "  :  :  :  :  :  "), "", func() bool { return !state.connected })
 	}
 	d.Update()
 
@@ -176,10 +193,10 @@ func main() {
 		pinDebugMain.Set(!pinDebugMain.Get())
 
 		// check for reset request
-		if !pinResetCenter.Get() || (iter%400 == 0 && i.ReadTap() || t.ResetRequested()) { // Button pressed OR [double] tap registered (shall not read register more frequently than double tap duration)
+		if !pinResetCenter.Get() || (iter%400 == 0 && i.ReadTap()) { // Button pressed OR [double] tap registered (shall not read register more frequently than double tap duration)
 			o.Reset()
 			on(ledR)
-			println("HT", Version, "|", t.Address(), "| [ Orientation reset  ]")
+			println("Orientation reset via pin or double tap")
 			offLedRIter = (int(iter) + 500) % 10_000 // keep LED on for 500 ms
 		}
 		if offLedRIter >= 0 && int(iter) == offLedRIter {
@@ -194,11 +211,10 @@ func main() {
 
 		// set channels, every 20ms (~300us)
 		for i, a := range o.Angles() {
-			c := angleToChannel(a)
-			t.SetChannel(i, c)
-			d.SetBar(byte(i), int16(1500-c)/10, false)
+			state.channels[i] = angleToChannel(a)
+			t.SetChannel(i, state.channels[i])
+			d.SetBar(byte(i), int16(1500-state.channels[i])/10, false)
 		}
-		t.Update()
 
 		// update display, every 100ms, offset one period to avoid clash with tracing (~15000us)
 		if (iter-PERIOD) >= 0 && (iter-PERIOD)%DISPLAY_COUNT == 0 {
@@ -274,8 +290,8 @@ func flashStore() {
 	}
 	f.gyrCalOffsets = o.Offsets()
 	println("Storing calibration to flash:", f.gyrCalOffsets[0], f.gyrCalOffsets[1], f.gyrCalOffsets[2])
-		err := f.Store()
-		if err != nil {
+	err := f.Store()
+	if err != nil {
 		println("Flash error:", err.Error())
 	}
 }
@@ -303,7 +319,7 @@ func stateCalibration(iter uint16) {
 
 func statePara(iter uint16) {
 	if iter%BLINK_PARA_COUNT == 0 { // indicate para (bluetooth) state
-		if t.Paired() {
+		if state.connected {
 			on(ledB) // on, connected
 		} else {
 			toggle(ledB) // blink, advertising
@@ -316,11 +332,10 @@ var ms = runtime.MemStats{}
 func trace(iter uint16) {
 	if iter%TRACE_COUNT == 0 { // print out state (~1000us)
 		pinDebugData.High()
-		channels := t.Channels()
-		r, p, y := channels[0], channels[1], channels[2]
+		ch0, ch1, ch2 := state.channels[0], state.channels[1], state.channels[2]
 		cal := o.Offsets()
 		runtime.ReadMemStats(&ms)
-		println("HT", Version, "|", t.Address(), "| [", r, ",", p, ",", y, "] (", cal[0], ",", cal[1], ",", cal[2], ")", ms.HeapInuse)
+		println("HT", Version, "|", state.address, "| [", ch0, ",", ch1, ",", ch2, "] (", cal[0], ",", cal[1], ",", cal[2], ")", ms.HeapInuse)
 		pinDebugData.Low()
 	}
 }
