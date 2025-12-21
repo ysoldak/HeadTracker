@@ -8,11 +8,11 @@ import (
 var errFlashWrongChecksum = errors.New("wrong checksum reading data from flash")
 
 type Flash struct {
-	roll, pitch, yaw int32
+	gyrCalOffsets [3]int32
 }
 
 func (fd *Flash) IsEmpty() bool {
-	return fd.roll == 0 && fd.pitch == 0 && fd.yaw == 0
+	return fd.gyrCalOffsets[0] == 0 && fd.gyrCalOffsets[1] == 0 && fd.gyrCalOffsets[2] == 0
 }
 
 func (fd *Flash) Load() error {
@@ -32,19 +32,18 @@ func (fd *Flash) Load() error {
 		return errFlashWrongChecksum
 	}
 
-	fd.roll = toInt32(data[0:4])
-	fd.pitch = toInt32(data[4:8])
-	fd.yaw = toInt32(data[8:12])
+	fd.gyrCalOffsets[0] = toInt32(data[0:4])
+	fd.gyrCalOffsets[1] = toInt32(data[4:8])
+	fd.gyrCalOffsets[2] = toInt32(data[8:12])
 
 	return nil
 }
 
 func (fd *Flash) Store() error {
 	data := make([]byte, 3*4+1) // each calibration parameter is int32, plus checksum
-	fromInt32(data[0:4], fd.roll)
-	fromInt32(data[4:8], fd.pitch)
-	fromInt32(data[8:12], fd.yaw)
-
+	fromInt32(data[0:4], fd.gyrCalOffsets[0])
+	fromInt32(data[4:8], fd.gyrCalOffsets[1])
+	fromInt32(data[8:12], fd.gyrCalOffsets[2])
 	// xor all bytes, including the last (it is zero anyway)
 	checksum := byte(0)
 	for _, b := range data {
