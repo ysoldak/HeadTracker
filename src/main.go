@@ -142,7 +142,7 @@ func main() {
 		}
 
 		if time.Now().After(stopTime) && !f.IsEmpty() { // when had some calibration already, force it if was not able to find better quickly
-			o.SetOffsets(f.roll, f.pitch, f.yaw)
+			o.SetOffsets(f.gyrCalOffsets)
 			o.SetStable(true)
 		}
 		if o.Stable() {
@@ -257,18 +257,26 @@ func flashLoad() {
 	}
 
 	// set offsets, they are either actual previous calibration result or zeroes inially and in case of error
-	o.SetOffsets(f.roll, f.pitch, f.yaw) // zeroes at worst
+	o.SetOffsets(f.gyrCalOffsets) // zeroes at worst
 }
 
 // Store only when difference is large enough
 func flashStore() {
-	roll, pitch, yaw := o.Offsets()
-	if abs(f.roll-roll) > flashStoreTreshold || abs(f.pitch-pitch) > flashStoreTreshold || abs(f.yaw-yaw) > flashStoreTreshold {
-		f.roll, f.pitch, f.yaw = roll, pitch, yaw
+	belowThreshold := true
+	for i := range o.Offsets() {
+		if abs(f.gyrCalOffsets[i]-o.Offsets()[i]) > flashStoreTreshold {
+			belowThreshold = false
+			break
+		}
+	}
+	if belowThreshold {
+		return
+	}
+	f.gyrCalOffsets = o.Offsets()
+	println("Storing calibration to flash:", f.gyrCalOffsets[0], f.gyrCalOffsets[1], f.gyrCalOffsets[2])
 		err := f.Store()
 		if err != nil {
-			println(time.Now().Unix(), err.Error())
-		}
+		println("Flash error:", err.Error())
 	}
 }
 
@@ -310,9 +318,9 @@ func trace(iter uint16) {
 		pinDebugData.High()
 		channels := t.Channels()
 		r, p, y := channels[0], channels[1], channels[2]
-		rc, pc, yc := o.Offsets()
+		cal := o.Offsets()
 		runtime.ReadMemStats(&ms)
-		println("HT", Version, "|", t.Address(), "| [", r, ",", p, ",", y, "] (", rc, ",", pc, ",", yc, ")", ms.HeapInuse)
+		println("HT", Version, "|", t.Address(), "| [", r, ",", p, ",", y, "] (", cal[0], ",", cal[1], ",", cal[2], ")", ms.HeapInuse)
 		pinDebugData.Low()
 	}
 }
