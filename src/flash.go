@@ -18,8 +18,6 @@ type Flash struct {
 	checksum      byte
 	length        byte
 	gyrCalOffsets [3]int32
-
-	data [FLASH_LENGTH]byte
 }
 
 func NewFlash() *Flash {
@@ -36,23 +34,25 @@ func (fd *Flash) IsEmpty() bool {
 
 func (fd *Flash) Load() error {
 
-	_, err := machine.Flash.ReadAt(fd.data[:], 0)
+	data := make([]byte, FLASH_LENGTH)
+
+	_, err := machine.Flash.ReadAt(data[:], 0)
 	if err != nil {
 		return err
 	}
 
 	// validate length
-	length := fd.data[1]
+	length := data[1]
 	if length == 0 || length > FLASH_LENGTH {
 		return errFlashWrongLength
 	}
 
 	// xor all bytes, but the first
 	checksum := byte(0)
-	for _, b := range fd.data[1:length] {
+	for _, b := range data[1:length] {
 		checksum ^= b
 	}
-	if checksum != fd.data[0] {
+	if checksum != data[0] {
 		return errFlashWrongChecksum
 	}
 
@@ -63,7 +63,7 @@ func (fd *Flash) Load() error {
 	}
 	offset := FLASH_HEADER_LENGTH
 	for i := range 3 {
-		fd.gyrCalOffsets[i] = toInt32(fd.data[offset+i*4 : offset+(i+1)*4])
+		fd.gyrCalOffsets[i] = toInt32(data[offset+i*4 : offset+(i+1)*4])
 	}
 
 	println("Loaded from flash:", fd.gyrCalOffsets[0], fd.gyrCalOffsets[1], fd.gyrCalOffsets[2])
@@ -72,24 +72,27 @@ func (fd *Flash) Load() error {
 }
 
 func (fd *Flash) Store() error {
-	fd.data[1] = FLASH_LENGTH
+
+	data := make([]byte, FLASH_LENGTH)
+
+	data[1] = FLASH_LENGTH
 	// gyro calibration
 	offset := FLASH_HEADER_LENGTH
 	for i := range 3 {
-		fromInt32(fd.data[offset+i*4:offset+(i+1)*4], fd.gyrCalOffsets[i])
+		fromInt32(data[offset+i*4:offset+(i+1)*4], fd.gyrCalOffsets[i])
 	}
 	// xor all bytes, but the first
 	checksum := byte(0)
-	for _, b := range fd.data[1:] {
+	for _, b := range data[1:] {
 		checksum ^= b
 	}
-	fd.data[0] = checksum
+	data[0] = checksum
 
 	err := machine.Flash.EraseBlocks(0, 1)
 	if err != nil {
 		return err
 	}
-	_, err = machine.Flash.WriteAt(fd.data[:], 0)
+	_, err = machine.Flash.WriteAt(data[:], 0)
 	if err != nil {
 		return err
 	}
