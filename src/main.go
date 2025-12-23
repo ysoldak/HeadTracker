@@ -14,19 +14,20 @@ import (
 var Version string
 
 const (
-	PERIOD           = 20   // 20000us -- budget for main loop to ensure stable timing for sensor fusion
-	DISPLAY_COUNT    = 100  // update display every 100ms, with offset of one period to avoid clashing with tracing
-	BLINK_MAIN_COUNT = 500  // main loop indicator
-	BLINK_WARM_COUNT = 100  // warm up / calibration indicator
-	BLINK_PARA_COUNT = 200  // para (bluetooth) state indicator
-	TRACE_COUNT      = 1000 // tracing to serial output, every 1 second
+	PERIOD           = 20     // 20000us -- budget for main loop to ensure stable timing for sensor fusion
+	DISPLAY_COUNT    = 100    // update display every 100ms, with offset of one period to avoid clashing with tracing
+	FLASH_COUNT      = 30_000 // try dump state to flash every 30 seconds
+	BLINK_MAIN_COUNT = 500    // main loop indicator
+	BLINK_WARM_COUNT = 100    // warm up / calibration indicator
+	BLINK_PARA_COUNT = 200    // para (bluetooth) state indicator
+	TRACE_COUNT      = 1_000  // tracing to serial output, every 1 second
 )
 
 const (
 	radToMs = 512.0 / math.Pi
 )
 
-const flashStoreTreshold = 10_000
+const flashStoreTreshold = 100_000
 
 var (
 	d *display.Display
@@ -86,7 +87,7 @@ func init() {
 	d = display.New()
 	d.Configure()
 
-	f = &Flash{}
+	f = NewFlash()
 
 	tickPeriod = time.NewTicker(PERIOD * time.Millisecond)
 
@@ -109,7 +110,7 @@ func main() {
 		<-tickPeriod.C
 	}
 
-	flashLoad()
+	loadState()
 
 	// record initial orientation
 	o.Reset()
@@ -147,9 +148,9 @@ func main() {
 			d.SetBar(byte(i), int16(value)/20, true)
 		}
 
-		stateMain(iter)
-		stateCalibration(iter)
-		trace(iter)
+		blinkMain(iter)
+		blinkCalibration(iter)
+		printState(iter)
 
 		time.Sleep(time.Millisecond)
 		iter++
@@ -171,8 +172,8 @@ func main() {
 	// indicate calibration is over
 	off(ledR)
 
-	// store calibration values
-	flashStore()
+	// store calibration values (0 to force store now)
+	storeState(0)
 
 	// start trainer after flash operations (bluetooth conflicts with flash)
 	state.address = t.Start()
@@ -187,7 +188,6 @@ func main() {
 
 	// main loop
 	iter = 0
-	offLedRIter := -1
 	for range tickPeriod.C {
 
 		pinDebugMain.Set(!pinDebugMain.Get())
@@ -195,13 +195,7 @@ func main() {
 		// check for reset request
 		if !pinResetCenter.Get() || (iter%400 == 0 && i.ReadTap()) { // Button pressed OR [double] tap registered (shall not read register more frequently than double tap duration)
 			o.Reset()
-			on(ledR)
 			println("Orientation reset via pin or double tap")
-			offLedRIter = (int(iter) + 500) % 10_000 // keep LED on for 500 ms
-		}
-		if offLedRIter >= 0 && int(iter) == offLedRIter {
-			off(ledR)
-			offLedRIter = -1
 		}
 
 		// update orientation, every 20ms (~2360us)
@@ -216,20 +210,17 @@ func main() {
 			d.SetBar(byte(i), int16(1500-state.channels[i])/10, false)
 		}
 
-		// update display, every 100ms, offset one period to avoid clash with tracing (~15000us)
-		if (iter-PERIOD) >= 0 && (iter-PERIOD)%DISPLAY_COUNT == 0 {
-			pinDebugData.High()
-			d.Update()
-			pinDebugData.Low()
-		}
+		// update display, every 100ms (~15000us)
+		updateDisplay(iter + PERIOD) // slow (when display is connected, shall not clash with anything else, so offset by one period)
 
-		// blink and trace
-		stateMain(iter)
-		statePara(iter)
-		trace(iter)
+		// handle state, period and performance varies
+		blinkMain(iter)  // very fast
+		blinkPara(iter)  // very fast
+		storeState(iter) // very slow (~85300us, can affect sensor fusion if executed too often; as it is so slow no point to offset it)
+		printState(iter) // fast (~1500us)
 
 		iter += PERIOD
-		iter %= 10_000
+		iter %= 60_000
 	}
 
 }
@@ -249,9 +240,21 @@ func angleToChannel(angle float64) uint16 {
 	return result
 }
 
-// --- Flash ----
+// --- Display ----
 
-func flashLoad() {
+// Update display, slow operation when display is connected (~15000us)
+func updateDisplay(iter uint16) {
+	if iter%DISPLAY_COUNT != 0 {
+		return
+	}
+	pinDebugData.High()
+	defer pinDebugData.Low()
+	d.Update()
+}
+
+// --- State ----
+
+func loadState() {
 	// reset calibration data when button is pressed
 	resetGyrCalOffsets := !pinResetCenter.Get()
 	// wait until button is released
@@ -276,8 +279,17 @@ func flashLoad() {
 	o.SetOffsets(f.gyrCalOffsets) // zeroes at worst
 }
 
-// Store only when difference is large enough
-func flashStore() {
+// Store current configuration & calibration to flash (~85300us)
+// The operation is slow and flash has limited number of write cycles,
+// so only do this when difference is large enough and not too often.
+func storeState(iter uint16) {
+	if iter%FLASH_COUNT != 0 {
+		return
+	}
+
+	pinDebugData.High()
+	defer pinDebugData.Low()
+
 	belowThreshold := true
 	for i := range o.Offsets() {
 		if abs(f.gyrCalOffsets[i]-o.Offsets()[i]) > flashStoreTreshold {
@@ -289,7 +301,6 @@ func flashStore() {
 		return
 	}
 	f.gyrCalOffsets = o.Offsets()
-	println("Storing calibration to flash:", f.gyrCalOffsets[0], f.gyrCalOffsets[1], f.gyrCalOffsets[2])
 	err := f.Store()
 	if err != nil {
 		println("Flash error:", err.Error())
@@ -305,37 +316,47 @@ func abs(v int32) int32 {
 
 // --- Logging ----
 
-func stateMain(iter uint16) {
-	if iter%BLINK_MAIN_COUNT == 0 { // indicate main loop running
+// indicate main loop running
+func blinkMain(iter uint16) {
+	if iter%BLINK_MAIN_COUNT == 0 {
 		toggle(led)
 	}
 }
 
-func stateCalibration(iter uint16) {
-	if iter%BLINK_WARM_COUNT == 0 { // indicate warm loop running
+// indicate warm loop running
+func blinkCalibration(iter uint16) {
+	if iter%BLINK_WARM_COUNT == 0 {
 		toggle(ledR)
 	}
 }
 
-func statePara(iter uint16) {
-	if iter%BLINK_PARA_COUNT == 0 { // indicate para (bluetooth) state
-		if state.connected {
-			on(ledB) // on, connected
-		} else {
-			toggle(ledB) // blink, advertising
-		}
+// indicate para (bluetooth) state
+func blinkPara(iter uint16) {
+	if iter%BLINK_PARA_COUNT != 0 {
+		return
+	}
+	if !pinSelectPPM.Get() { // PPM mode
+		off(ledB)
+		return
+	}
+	if state.connected {
+		on(ledB) // on, connected
+	} else {
+		toggle(ledB) // blink, advertising
 	}
 }
 
 var ms = runtime.MemStats{}
 
-func trace(iter uint16) {
-	if iter%TRACE_COUNT == 0 { // print out state (~1000us)
-		pinDebugData.High()
-		ch0, ch1, ch2 := state.channels[0], state.channels[1], state.channels[2]
-		cal := o.Offsets()
-		runtime.ReadMemStats(&ms)
-		println("HT", Version, "|", state.address, "| [", ch0, ",", ch1, ",", ch2, "] (", cal[0], ",", cal[1], ",", cal[2], ")", ms.HeapInuse)
-		pinDebugData.Low()
+// Print out state (~1500us)
+func printState(iter uint16) {
+	if iter%TRACE_COUNT != 0 {
+		return
 	}
+	pinDebugData.High()
+	ch0, ch1, ch2 := state.channels[0], state.channels[1], state.channels[2]
+	cal := o.Offsets()
+	runtime.ReadMemStats(&ms)
+	println("HT", Version, "|", state.address, "| [", ch0, ",", ch1, ",", ch2, "] (", cal[0], ",", cal[1], ",", cal[2], ")", ms.HeapInuse)
+	pinDebugData.Low()
 }
