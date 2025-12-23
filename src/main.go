@@ -242,7 +242,7 @@ func angleToChannel(angle float64) uint16 {
 
 // --- Display ----
 
-// Update diplay, slow operation whne display is connected (~15000us)
+// Update display, slow operation when display is connected (~15000us)
 func updateDisplay(iter uint16) {
 	if iter%DISPLAY_COUNT != 0 {
 		return
