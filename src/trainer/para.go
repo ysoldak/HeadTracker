@@ -8,11 +8,21 @@ import (
 	"tinygo.org/x/bluetooth"
 )
 
-const CHAR_COMMANDS = 0xFFC1        // 'C' is for Commands (runtime effects)
-const CHAR_COMMANDS_COMPAT = 0xAFF2 // Cliff's Head Tracker reset command characteristic
-const CMD_ORIENTATION_RESET = 'R'
-const CMD_FACTORY_RESET = 'F'
-const CMD_REBOOT = 'B'
+// 'C' is for Commands (runtime effects)
+const (
+	CHAR_COMMANDS         = 0xFFC1
+	CHAR_COMMANDS_COMPAT  = 0xAFF2 // Cliff's Head Tracker reset command characteristic
+	CMD_ORIENTATION_RESET = 'R'    // reset orientation
+	CMD_FACTORY_RESET     = 'F'    // factory reset
+	CMD_REBOOT            = 'B'    // reboot device
+)
+
+// 'D' is for Data (to persist)
+const (
+	CHAR_DATA_AXIS1 = 0xFFD1 // axis 1 mapping (0x00 to 0x0F and 0xFF, anything else is ignored)
+	CHAR_DATA_AXIS2 = 0xFFD2 // axis 2 mapping (to invert, add 0x08: 0x0A is the same as 0x02 but inverted)
+	CHAR_DATA_AXIS3 = 0xFFD3 // axis 3 mapping (0xFF disables the axis mapping)
+)
 
 // Have to send this to master radio on connect otherwise high chance opentx para code will never receive "Connected" message
 // Since it looks for "Connected\r\n" and sometimes(?) bluetooth underlying layer on master radio
@@ -36,6 +46,11 @@ type Para struct {
 	orientationReset bool
 	factoryReset     bool
 	reboot           bool
+
+	data struct {
+		axisValues  [3]byte
+		axisChanged [3]bool
+	}
 }
 
 type CallbackHandler interface {
@@ -47,6 +62,9 @@ type CallbackHandler interface {
 	OnOrientationReset()
 	OnReboot()
 	OnFactoryReset()
+
+	// remote configuration
+	OnAxisMappingChange(axis byte, value byte)
 }
 
 func NewPara(name string, callbackHandler CallbackHandler) *Para {
@@ -163,6 +181,46 @@ func (t *Para) Start() string {
 		WriteEvent: commandHandler,
 	}
 
+	charDataAxis1 := bluetooth.CharacteristicConfig{
+		Handle: nil,
+		UUID:   bluetooth.New16BitUUID(CHAR_DATA_AXIS1),
+		Value:  []byte{t.data.axisValues[0]},
+		Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
+		WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
+			if len(value) != 1 {
+				return
+			}
+			t.data.axisValues[0] = value[0]
+			t.data.axisChanged[0] = true
+		},
+	}
+	charDataAxis2 := bluetooth.CharacteristicConfig{
+		Handle: nil,
+		UUID:   bluetooth.New16BitUUID(CHAR_DATA_AXIS2),
+		Value:  []byte{t.data.axisValues[1]},
+		Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
+		WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
+			if len(value) != 1 {
+				return
+			}
+			t.data.axisValues[1] = value[0]
+			t.data.axisChanged[1] = true
+		},
+	}
+	charDataAxis3 := bluetooth.CharacteristicConfig{
+		Handle: nil,
+		UUID:   bluetooth.New16BitUUID(CHAR_DATA_AXIS3),
+		Value:  []byte{t.data.axisValues[2]},
+		Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
+		WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
+			if len(value) != 1 {
+				return
+			}
+			t.data.axisValues[2] = value[0]
+			t.data.axisChanged[2] = true
+		},
+	}
+
 	t.adapter.AddService(&bluetooth.Service{
 		UUID: bluetooth.New16BitUUID(0xFFF0),
 		Characteristics: []bluetooth.CharacteristicConfig{
@@ -173,6 +231,9 @@ func (t *Para) Start() string {
 			fff6,          // channels data
 			charCmd,       // runtime commands from client
 			charCmdCompat, // for compatibility with Cliff's HT
+			charDataAxis1, // axis 1 mapping
+			charDataAxis2, // axis 2 mapping
+			charDataAxis3, // axis 3 mapping
 		},
 	})
 
@@ -215,6 +276,17 @@ func (t *Para) Start() string {
 				t.callbackHandler.OnReboot()
 			}
 
+			for i := byte(0); i < 3; i++ {
+				if t.data.axisChanged[i] {
+					t.data.axisChanged[i] = false
+					// sanity check for invalid values
+					if t.data.axisValues[i] > 0x0F && t.data.axisValues[i] != 0xFF {
+						continue
+					}
+					t.callbackHandler.OnAxisMappingChange(i, t.data.axisValues[i])
+				}
+			}
+
 		}
 	}()
 
@@ -237,7 +309,7 @@ func (t *Para) update() {
 	}
 }
 
-func (p *Para) SetChannel(n int, v uint16) {
+func (p *Para) SetChannel(n byte, v uint16) {
 	p.channels[n] = v
 }
 

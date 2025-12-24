@@ -62,7 +62,7 @@ func (ppm *PPM) Start() string {
 	return "    PPM OUTPUT"
 }
 
-func (ppm *PPM) SetChannel(n int, v uint16) {
+func (ppm *PPM) SetChannel(n byte, v uint16) {
 	ppm.channels[n] = v
 }
 
