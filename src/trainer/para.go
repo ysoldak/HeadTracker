@@ -22,6 +22,7 @@ const (
 	CHAR_DATA_AXIS1 = 0xFFD1 // axis 1 mapping (0x00 to 0x0F and 0xFF, anything else is ignored)
 	CHAR_DATA_AXIS2 = 0xFFD2 // axis 2 mapping (to invert, add 0x08: 0x0A is the same as 0x02 but inverted)
 	CHAR_DATA_AXIS3 = 0xFFD3 // axis 3 mapping (0xFF disables the axis mapping)
+	CHAR_DATA_NAME  = 0xFFD4 // custom name (up to 8 bytes)
 )
 
 // Have to send this to master radio on connect otherwise high chance opentx para code will never receive "Connected" message
@@ -48,8 +49,11 @@ type Para struct {
 	reboot           bool
 
 	data struct {
-		axisValues  [3]byte
 		axisChanged [3]bool
+		axisValues  [3]byte
+		nameChanged bool
+		nameValue   [8]byte
+		nameLength  byte
 	}
 }
 
@@ -65,6 +69,7 @@ type CallbackHandler interface {
 
 	// remote configuration
 	OnAxisMappingChange(axis byte, value byte)
+	OnNameChange(name string)
 }
 
 func NewPara(name string, callbackHandler CallbackHandler) *Para {
@@ -220,6 +225,24 @@ func (t *Para) Start() string {
 			t.data.axisChanged[2] = true
 		},
 	}
+	charDataName := bluetooth.CharacteristicConfig{
+		Handle: nil,
+		UUID:   bluetooth.New16BitUUID(CHAR_DATA_NAME),
+		Value:  t.data.nameValue[:t.data.nameLength],
+		Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
+		WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
+			if len(value) == 0 {
+				return
+			}
+			n := 0
+			for n < len(t.data.nameValue) && n < len(value) {
+				t.data.nameValue[n] = value[n]
+				n++
+			}
+			t.data.nameLength = byte(n)
+			t.data.nameChanged = true
+		},
+	}
 
 	t.adapter.AddService(&bluetooth.Service{
 		UUID: bluetooth.New16BitUUID(0xFFF0),
@@ -234,6 +257,7 @@ func (t *Para) Start() string {
 			charDataAxis1, // axis 1 mapping
 			charDataAxis2, // axis 2 mapping
 			charDataAxis3, // axis 3 mapping
+			charDataName,  // custom name
 		},
 	})
 
@@ -285,6 +309,18 @@ func (t *Para) Start() string {
 					}
 					t.callbackHandler.OnAxisMappingChange(i, t.data.axisValues[i])
 				}
+			}
+
+			if t.data.nameChanged {
+				t.data.nameChanged = false
+				t.name = string(t.data.nameValue[:t.data.nameLength])
+				t.callbackHandler.OnNameChange(t.name)
+				// update advertisement name
+				// can't do it in the write handler or on disconnect due to allocation restrictions in interrupt handlers
+				t.adv.Configure(bluetooth.AdvertisementOptions{
+					LocalName:    t.name,
+					ServiceUUIDs: []bluetooth.UUID{bluetooth.New16BitUUID(0xFFF0)},
+				})
 			}
 
 		}

@@ -12,7 +12,8 @@ const (
 	FLASH_HEADER_LENGTH   = 2     // checksum + length
 	FLASH_GYRO_CAL_LENGTH = 3 * 4 // gyro calibration offsets (int32 each)
 	FLASH_AXES_MAP_LENGTH = 3     // axis to channels mapping (byte each)
-	FLASH_LENGTH          = FLASH_HEADER_LENGTH + FLASH_GYRO_CAL_LENGTH + FLASH_AXES_MAP_LENGTH
+	FLASH_NAME_LENGTH     = 8     // custom head tracker name
+	FLASH_LENGTH          = FLASH_HEADER_LENGTH + FLASH_GYRO_CAL_LENGTH + FLASH_AXES_MAP_LENGTH + FLASH_NAME_LENGTH
 )
 
 type Flash struct {
@@ -28,6 +29,8 @@ type Flash struct {
 	// - 0xFF disables the axis mapping
 	// - when several axesMapping have the same offset, the higher numbered axis wins
 	axesMapping [3]byte
+
+	name [8]byte
 }
 
 func NewFlash() *Flash {
@@ -36,6 +39,7 @@ func NewFlash() *Flash {
 		length:        FLASH_LENGTH,
 		gyrCalOffsets: [3]int32{0, 0, 0},
 		axesMapping:   [3]byte{0, 1, 2}, // default mapping: all axes enabled, normal order
+		name:          [8]byte{'H', 'T'},
 	}
 }
 
@@ -53,7 +57,7 @@ func (fd *Flash) Load() error {
 	}
 
 	// validate length
-	length := data[1]
+	length := int(data[1])
 	if length == 0 || length > FLASH_LENGTH {
 		return errFlashWrongLength
 	}
@@ -67,29 +71,42 @@ func (fd *Flash) Load() error {
 		return errFlashWrongChecksum
 	}
 
+	offset := FLASH_HEADER_LENGTH
+
 	// read gyro calibration, best effort
-	if length < FLASH_HEADER_LENGTH+FLASH_GYRO_CAL_LENGTH {
+	if length < offset+FLASH_GYRO_CAL_LENGTH {
 		println("Incomplete flash data, length:", length)
 		return nil // this is fine, just no gyro calibration
 	}
-	offset := FLASH_HEADER_LENGTH
-	for i := range 3 {
+	for i := range FLASH_GYRO_CAL_LENGTH / 4 {
 		fd.gyrCalOffsets[i] = toInt32(data[offset+i*4 : offset+(i+1)*4])
 	}
+	offset += FLASH_GYRO_CAL_LENGTH
 
-	// read axes configuration, best effort
-	if length < FLASH_HEADER_LENGTH+FLASH_GYRO_CAL_LENGTH+FLASH_AXES_MAP_LENGTH {
+	// read axes mapping, best effort
+	if length < offset+FLASH_AXES_MAP_LENGTH {
 		println("Incomplete flash data, length:", length)
 		return nil // this is fine, just no axis configuration
 	}
-	offset += FLASH_GYRO_CAL_LENGTH
-	for i := 0; i < 3; i++ {
+	for i := 0; i < FLASH_AXES_MAP_LENGTH; i++ {
 		fd.axesMapping[i] = data[offset+i]
 	}
+	offset += FLASH_AXES_MAP_LENGTH
+
+	// read custom name, best effort
+	if length < offset+FLASH_NAME_LENGTH {
+		println("Incomplete flash data, length:", length)
+		return nil // this is fine, just no name
+	}
+	for i := 0; i < FLASH_NAME_LENGTH; i++ {
+		fd.name[i] = data[offset+i]
+	}
+	offset += FLASH_NAME_LENGTH
 
 	println("Loaded from flash")
 	println("  gyro calibration:", fd.gyrCalOffsets[0], fd.gyrCalOffsets[1], fd.gyrCalOffsets[2])
 	println("  axes mapping:", fd.axesMapping[0], fd.axesMapping[1], fd.axesMapping[2])
+	println("  tracker name:", string(fd.name[:]))
 
 	return nil
 }
@@ -99,16 +116,25 @@ func (fd *Flash) Store() error {
 	data := make([]byte, FLASH_LENGTH)
 
 	data[1] = FLASH_LENGTH
-	// gyro calibration
 	offset := FLASH_HEADER_LENGTH
-	for i := range 3 {
+
+	// gyro calibration
+	for i := range FLASH_GYRO_CAL_LENGTH / 4 {
 		fromInt32(data[offset+i*4:offset+(i+1)*4], fd.gyrCalOffsets[i])
 	}
-	// axes configuration
 	offset += FLASH_GYRO_CAL_LENGTH
-	for i := 0; i < 3; i++ {
+
+	// axes mapping
+	for i := 0; i < FLASH_AXES_MAP_LENGTH; i++ {
 		data[offset+i] = fd.axesMapping[i]
 	}
+	offset += FLASH_AXES_MAP_LENGTH
+
+	// custom name
+	for i := 0; i < FLASH_NAME_LENGTH; i++ {
+		data[offset+i] = fd.name[i]
+	}
+	offset += FLASH_NAME_LENGTH
 
 	// xor all bytes, but the first
 	checksum := byte(0)
@@ -129,6 +155,7 @@ func (fd *Flash) Store() error {
 	println("Stored to flash")
 	println("  gyro calibration:", fd.gyrCalOffsets[0], fd.gyrCalOffsets[1], fd.gyrCalOffsets[2])
 	println("  axes mapping:", fd.axesMapping[0], fd.axesMapping[1], fd.axesMapping[2])
+	println("  tracker name:", string(fd.name[:]))
 
 	return nil
 }
