@@ -324,21 +324,18 @@ func storeState(iter uint16) {
 		}
 	}
 
-	newName := [8]byte{}
-	n := 0
-	for n < len(state.name) && n < len(newName) {
-		newName[n] = byte(state.name[n])
-		n++
-	}
-	for n < len(newName) {
-		newName[n] = 0
-		n++
-	}
-	for i := 0; i < 8; i++ {
-		if f.name[i] != newName[i] {
-			f.name = newName
+	newName := false
+	for i := range len(f.name) {
+		b := byte(0)
+		if i < len(state.name) {
+			b = byte(state.name[i])
+		}
+		if f.name[i] != b {
+			newName = true
+		}
+		if newName {
+			f.name[i] = b
 			mustStore = true
-			break
 		}
 	}
 
