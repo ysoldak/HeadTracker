@@ -36,3 +36,9 @@ func (b *BluetoothCallbackHandler) OnReboot() {
 	time.Sleep(1 * time.Second)
 	machine.CPUReset()
 }
+
+func (b *BluetoothCallbackHandler) OnAxisMappingChange(axis byte, value byte) {
+	println("Axis", (axis + 1), "mapping changed to", value)
+	state.axesMap[axis] = value
+	// shall we save to flash immediately or 30sec delay is fine? <- main thread stores periodically
+}

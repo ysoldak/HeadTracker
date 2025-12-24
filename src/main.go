@@ -40,7 +40,7 @@ var (
 
 type Trainer interface {
 	Start() string
-	SetChannel(num int, v uint16)
+	SetChannel(num byte, v uint16)
 }
 
 var (
@@ -51,6 +51,7 @@ var state struct {
 	address   string
 	channels  [3]uint16
 	connected bool
+	axesMap   [3]byte
 }
 
 func init() {
@@ -206,8 +207,17 @@ func main() {
 		// set channels, every 20ms (~300us)
 		for i, a := range o.Angles() {
 			state.channels[i] = angleToChannel(a)
-			t.SetChannel(i, state.channels[i])
 			d.SetBar(byte(i), int16(1500-state.channels[i])/10, false)
+			chIndex := f.axesMapping[i]
+			chValue := state.channels[i]
+			if chIndex == 0xFF {
+				continue // axis maps to no channel
+			}
+			if chIndex >= 0x08 { // inverted
+				chIndex -= 0x08
+				chValue = 3000 - chValue
+			}
+			t.SetChannel(chIndex, chValue)
 		}
 
 		// update display, every 100ms (~15000us)
@@ -277,6 +287,10 @@ func loadState() {
 
 	// set offsets, they are either actual previous calibration result or zeroes inially and in case of error
 	o.SetOffsets(f.gyrCalOffsets) // zeroes at worst
+
+	// set axes mapping
+	state.axesMap = f.axesMapping
+
 }
 
 // Store current configuration & calibration to flash (~85300us)
@@ -290,17 +304,26 @@ func storeState(iter uint16) {
 	pinDebugData.High()
 	defer pinDebugData.Low()
 
-	belowThreshold := true
+	mustStore := false
+
 	for i := range o.Offsets() {
 		if abs(f.gyrCalOffsets[i]-o.Offsets()[i]) > flashStoreTreshold {
-			belowThreshold = false
-			break
+			f.gyrCalOffsets[i] = o.Offsets()[i]
+			mustStore = true
 		}
 	}
-	if belowThreshold {
+
+	for i := 0; i < 3; i++ {
+		if f.axesMapping[i] != state.axesMap[i] {
+			f.axesMapping[i] = state.axesMap[i]
+			mustStore = true
+		}
+	}
+
+	if !mustStore {
 		return
 	}
-	f.gyrCalOffsets = o.Offsets()
+
 	err := f.Store()
 	if err != nil {
 		println("Flash error:", err.Error())
