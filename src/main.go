@@ -48,9 +48,10 @@ var (
 )
 
 var state struct {
-	address   string
-	channels  [3]uint16
-	connected bool
+	address    string
+	channels   [3]uint16
+	connected  bool
+	deviceName string
 }
 
 func init() {
@@ -70,18 +71,8 @@ func init() {
 		}
 	}
 
-	// Trainer (Bluetooth or PPM)
-	if !pinSelectPPM.Get() { // Low means connected to GND => PPM output requested
-		t = trainer.NewPPM(pinOutputPPM) // PPM wire
-		state.address = "    PPM OUTPUT"
-		state.connected = true
-	} else {
-		t = trainer.NewPara("HT", &BluetoothCallbackHandler{})
-		state.address = "B1:6B:00:B5:BA:BE"
-		state.connected = false
-	}
-
 	state.channels = [3]uint16{1500, 1500, 1500}
+	state.address = "--:--:--:--:--:--"
 
 	// Display
 	d = display.New()
@@ -175,7 +166,14 @@ func main() {
 	// store calibration values (0 to force store now)
 	storeState(0)
 
-	// start trainer after flash operations (bluetooth conflicts with flash)
+	// Trainer (Bluetooth or PPM)
+	if !pinSelectPPM.Get() { // Low means connected to GND => PPM output requested
+		t = trainer.NewPPM(pinOutputPPM) // PPM wire
+		state.connected = true
+	} else {
+		t = trainer.NewPara(state.deviceName, &BluetoothCallbackHandler{})
+		state.connected = false
+	}
 	state.address = t.Start()
 
 	// switch display to normal mode
@@ -277,6 +275,13 @@ func loadState() {
 
 	// set offsets, they are either actual previous calibration result or zeroes inially and in case of error
 	o.SetOffsets(f.gyrCalOffsets) // zeroes at worst
+
+	// set name
+	n := 0
+	for n < len(f.deviceName) && f.deviceName[n] != 0 {
+		n++
+	}
+	state.deviceName = string(f.deviceName[:n])
 }
 
 // Store current configuration & calibration to flash (~85300us)
@@ -290,17 +295,33 @@ func storeState(iter uint16) {
 	pinDebugData.High()
 	defer pinDebugData.Low()
 
-	belowThreshold := true
+	mustStore := false
 	for i := range o.Offsets() {
 		if abs(f.gyrCalOffsets[i]-o.Offsets()[i]) > flashStoreTreshold {
-			belowThreshold = false
-			break
+			f.gyrCalOffsets[i] = o.Offsets()[i]
+			mustStore = true
 		}
 	}
-	if belowThreshold {
+
+	newName := false
+	for i := range len(f.deviceName) {
+		b := byte(0)
+		if i < len(state.deviceName) {
+			b = byte(state.deviceName[i])
+		}
+		if f.deviceName[i] != b {
+			newName = true
+		}
+		if newName {
+			f.deviceName[i] = b
+			mustStore = true
+		}
+	}
+
+	if !mustStore {
 		return
 	}
-	f.gyrCalOffsets = o.Offsets()
+
 	err := f.Store()
 	if err != nil {
 		println("Flash error:", err.Error())
@@ -357,6 +378,6 @@ func printState(iter uint16) {
 	ch0, ch1, ch2 := state.channels[0], state.channels[1], state.channels[2]
 	cal := o.Offsets()
 	runtime.ReadMemStats(&ms)
-	println("HT", Version, "|", state.address, "| [", ch0, ",", ch1, ",", ch2, "] (", cal[0], ",", cal[1], ",", cal[2], ")", ms.HeapInuse)
+	println(state.deviceName, Version, "|", state.address, "| [", ch0, ",", ch1, ",", ch2, "] (", cal[0], ",", cal[1], ",", cal[2], ")", ms.HeapInuse)
 	pinDebugData.Low()
 }

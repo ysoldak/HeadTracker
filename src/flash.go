@@ -9,15 +9,17 @@ var errFlashWrongChecksum = errors.New("wrong checksum reading data from flash")
 var errFlashWrongLength = errors.New("unsupported flash data length")
 
 const (
-	FLASH_HEADER_LENGTH   = 2     // checksum + length
-	FLASH_GYRO_CAL_LENGTH = 3 * 4 // gyro calibration offsets (int32 each)
-	FLASH_LENGTH          = FLASH_HEADER_LENGTH + FLASH_GYRO_CAL_LENGTH
+	FLASH_HEADER_LENGTH      = 2     // checksum + length
+	FLASH_GYRO_CAL_LENGTH    = 3 * 4 // gyro calibration offsets (int32 each)
+	FLASH_DEVICE_NAME_LENGTH = 16    // custom device name
+	FLASH_LENGTH             = FLASH_HEADER_LENGTH + FLASH_GYRO_CAL_LENGTH + FLASH_DEVICE_NAME_LENGTH
 )
 
 type Flash struct {
 	checksum      byte
 	length        byte
 	gyrCalOffsets [3]int32
+	deviceName    [FLASH_DEVICE_NAME_LENGTH]byte
 }
 
 func NewFlash() *Flash {
@@ -25,6 +27,7 @@ func NewFlash() *Flash {
 		checksum:      FLASH_LENGTH,
 		length:        FLASH_LENGTH,
 		gyrCalOffsets: [3]int32{0, 0, 0},
+		deviceName:    [FLASH_DEVICE_NAME_LENGTH]byte{'H', 'T'},
 	}
 }
 
@@ -42,7 +45,7 @@ func (fd *Flash) Load() error {
 	}
 
 	// validate length
-	length := data[1]
+	length := int(data[1])
 	if length == 0 || length > FLASH_LENGTH {
 		return errFlashWrongLength
 	}
@@ -56,17 +59,31 @@ func (fd *Flash) Load() error {
 		return errFlashWrongChecksum
 	}
 
+	offset := FLASH_HEADER_LENGTH
+
 	// read gyro calibration, best effort
-	if length < FLASH_HEADER_LENGTH+FLASH_GYRO_CAL_LENGTH {
+	if length < offset+FLASH_GYRO_CAL_LENGTH {
 		println("Incomplete flash data, length:", length)
 		return nil // this is fine, just no gyro calibration
 	}
-	offset := FLASH_HEADER_LENGTH
-	for i := range 3 {
+	for i := range FLASH_GYRO_CAL_LENGTH / 4 {
 		fd.gyrCalOffsets[i] = toInt32(data[offset+i*4 : offset+(i+1)*4])
 	}
+	offset += FLASH_GYRO_CAL_LENGTH
 
-	println("Loaded from flash:", fd.gyrCalOffsets[0], fd.gyrCalOffsets[1], fd.gyrCalOffsets[2])
+	// read custom name, best effort
+	if length < offset+FLASH_DEVICE_NAME_LENGTH {
+		println("Incomplete flash data, length:", length)
+		return nil // this is fine, just no name
+	}
+	for i := 0; i < FLASH_DEVICE_NAME_LENGTH; i++ {
+		fd.deviceName[i] = data[offset+i]
+	}
+	offset += FLASH_DEVICE_NAME_LENGTH
+
+	println("Loaded from flash")
+	println("  device name:", string(fd.deviceName[:]))
+	println("  gyro calibration:", fd.gyrCalOffsets[0], fd.gyrCalOffsets[1], fd.gyrCalOffsets[2])
 
 	return nil
 }
@@ -76,11 +93,20 @@ func (fd *Flash) Store() error {
 	data := make([]byte, FLASH_LENGTH)
 
 	data[1] = FLASH_LENGTH
-	// gyro calibration
 	offset := FLASH_HEADER_LENGTH
-	for i := range 3 {
+
+	// gyro calibration
+	for i := range FLASH_GYRO_CAL_LENGTH / 4 {
 		fromInt32(data[offset+i*4:offset+(i+1)*4], fd.gyrCalOffsets[i])
 	}
+	offset += FLASH_GYRO_CAL_LENGTH
+
+	// device name
+	for i := 0; i < FLASH_DEVICE_NAME_LENGTH; i++ {
+		data[offset+i] = fd.deviceName[i]
+	}
+	offset += FLASH_DEVICE_NAME_LENGTH
+
 	// xor all bytes, but the first
 	checksum := byte(0)
 	for _, b := range data[1:] {
@@ -97,7 +123,9 @@ func (fd *Flash) Store() error {
 		return err
 	}
 
-	println("Stored to flash:", fd.gyrCalOffsets[0], fd.gyrCalOffsets[1], fd.gyrCalOffsets[2])
+	println("Stored to flash")
+	println("  device name:", string(fd.deviceName[:]))
+	println("  gyro calibration:", fd.gyrCalOffsets[0], fd.gyrCalOffsets[1], fd.gyrCalOffsets[2])
 
 	return nil
 }
