@@ -170,11 +170,9 @@ func main() {
 	// Trainer (Bluetooth or PPM)
 	if !pinSelectPPM.Get() { // Low means connected to GND => PPM output requested
 		t = trainer.NewPPM(pinOutputPPM) // PPM wire
-		state.address = "    PPM OUTPUT"
 		state.connected = true
 	} else {
 		t = trainer.NewPara(state.name, &BluetoothCallbackHandler{})
-		state.address = "B1:6B:00:B5:BA:BE"
 		state.connected = false
 	}
 	state.address = t.Start()
