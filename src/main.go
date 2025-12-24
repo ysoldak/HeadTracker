@@ -52,6 +52,7 @@ var state struct {
 	channels  [3]uint16
 	connected bool
 	axesMap   [3]byte
+	name      string
 }
 
 func init() {
@@ -71,18 +72,8 @@ func init() {
 		}
 	}
 
-	// Trainer (Bluetooth or PPM)
-	if !pinSelectPPM.Get() { // Low means connected to GND => PPM output requested
-		t = trainer.NewPPM(pinOutputPPM) // PPM wire
-		state.address = "    PPM OUTPUT"
-		state.connected = true
-	} else {
-		t = trainer.NewPara("HT", &BluetoothCallbackHandler{})
-		state.address = "B1:6B:00:B5:BA:BE"
-		state.connected = false
-	}
-
 	state.channels = [3]uint16{1500, 1500, 1500}
+	state.address = "--:--:--:--:--:--"
 
 	// Display
 	d = display.New()
@@ -176,7 +167,16 @@ func main() {
 	// store calibration values (0 to force store now)
 	storeState(0)
 
-	// start trainer after flash operations (bluetooth conflicts with flash)
+	// Trainer (Bluetooth or PPM)
+	if !pinSelectPPM.Get() { // Low means connected to GND => PPM output requested
+		t = trainer.NewPPM(pinOutputPPM) // PPM wire
+		state.address = "    PPM OUTPUT"
+		state.connected = true
+	} else {
+		t = trainer.NewPara(state.name, &BluetoothCallbackHandler{})
+		state.address = "B1:6B:00:B5:BA:BE"
+		state.connected = false
+	}
 	state.address = t.Start()
 
 	// switch display to normal mode
@@ -291,6 +291,12 @@ func loadState() {
 	// set axes mapping
 	state.axesMap = f.axesMapping
 
+	// set name
+	n := 0
+	for n < 8 && f.name[n] != 0 {
+		n++
+	}
+	state.name = string(f.name[:n])
 }
 
 // Store current configuration & calibration to flash (~85300us)
@@ -317,6 +323,24 @@ func storeState(iter uint16) {
 		if f.axesMapping[i] != state.axesMap[i] {
 			f.axesMapping[i] = state.axesMap[i]
 			mustStore = true
+		}
+	}
+
+	newName := [8]byte{}
+	n := 0
+	for n < len(state.name) && n < len(newName) {
+		newName[n] = byte(state.name[n])
+		n++
+	}
+	for n < len(newName) {
+		newName[n] = 0
+		n++
+	}
+	for i := 0; i < 8; i++ {
+		if f.name[i] != newName[i] {
+			f.name = newName
+			mustStore = true
+			break
 		}
 	}
 
@@ -380,6 +404,6 @@ func printState(iter uint16) {
 	ch0, ch1, ch2 := state.channels[0], state.channels[1], state.channels[2]
 	cal := o.Offsets()
 	runtime.ReadMemStats(&ms)
-	println("HT", Version, "|", state.address, "| [", ch0, ",", ch1, ",", ch2, "] (", cal[0], ",", cal[1], ",", cal[2], ")", ms.HeapInuse)
+	println(state.name, Version, "|", state.address, "| [", ch0, ",", ch1, ",", ch2, "] (", cal[0], ",", cal[1], ",", cal[2], ")", ms.HeapInuse)
 	pinDebugData.Low()
 }

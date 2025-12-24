@@ -42,3 +42,8 @@ func (b *BluetoothCallbackHandler) OnAxisMappingChange(axis byte, value byte) {
 	state.axesMap[axis] = value
 	// shall we save to flash immediately or 30sec delay is fine? <- main thread stores periodically
 }
+
+func (b *BluetoothCallbackHandler) OnNameChange(name string) {
+	println("Name changed to", name)
+	state.name = name
+}
