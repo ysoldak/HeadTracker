@@ -8,6 +8,12 @@ import (
 	"tinygo.org/x/bluetooth"
 )
 
+const CHAR_COMMANDS = 0xFFC1        // 'C' is for Commands (runtime effects)
+const CHAR_COMMANDS_COMPAT = 0xAFF2 // Cliff's Head Tracker reset command characteristic
+const CMD_ORIENTATION_RESET = 'R'
+const CMD_FACTORY_RESET = 'F'
+const CMD_REBOOT = 'B'
+
 // Have to send this to master radio on connect otherwise high chance opentx para code will never receive "Connected" message
 // Since it looks for "Connected\r\n" and sometimes(?) bluetooth underlying layer on master radio
 // never sends "\r\n" and starts sending trainer data directly
@@ -27,13 +33,20 @@ type Para struct {
 	paired   bool
 	channels [8]uint16
 
-	resetRequested bool
+	orientationReset bool
+	factoryReset     bool
+	reboot           bool
 }
 
 type CallbackHandler interface {
+	// bluetooth connection events
 	OnConnect()
 	OnDisconnect()
+
+	// remote commands
 	OnOrientationReset()
+	OnReboot()
+	OnFactoryReset()
 }
 
 func NewPara(name string, callbackHandler CallbackHandler) *Para {
@@ -121,16 +134,33 @@ func (t *Para) Start() string {
 
 	// Commands
 	// R - reset orientation, compatible with Cliff's HT reset button
-	aff2 := bluetooth.CharacteristicConfig{
-		Handle: nil,
-		UUID:   bluetooth.New16BitUUID(0xAFF2),
-		Value:  []byte{},
-		Flags:  bluetooth.CharacteristicWritePermission,
-		WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
-			if len(value) == 1 && value[0] == 'R' {
-				t.resetRequested = true
-			}
-		},
+	// F - factory reset
+	// B - reboot device
+	commandHandler := func(client bluetooth.Connection, offset int, value []byte) {
+		if len(value) == 1 && value[0] == CMD_ORIENTATION_RESET {
+			t.orientationReset = true
+		}
+		if len(value) == 1 && value[0] == CMD_FACTORY_RESET {
+			t.factoryReset = true
+		}
+		if len(value) == 1 && value[0] == CMD_REBOOT {
+			t.reboot = true
+		}
+	}
+	charCmd := bluetooth.CharacteristicConfig{
+		Handle:     nil,
+		UUID:       bluetooth.New16BitUUID(CHAR_COMMANDS),
+		Value:      []byte{},
+		Flags:      bluetooth.CharacteristicWritePermission,
+		WriteEvent: commandHandler,
+	}
+	// Compatibility with Cliff's Head Tracker
+	charCmdCompat := bluetooth.CharacteristicConfig{
+		Handle:     nil,
+		UUID:       bluetooth.New16BitUUID(CHAR_COMMANDS_COMPAT),
+		Value:      []byte{},
+		Flags:      bluetooth.CharacteristicWritePermission,
+		WriteEvent: commandHandler,
 	}
 
 	t.adapter.AddService(&bluetooth.Service{
@@ -140,8 +170,9 @@ func (t *Para) Start() string {
 			fff2,
 			fff3,
 			fff5,
-			fff6,
-			aff2,
+			fff6,          // channels data
+			charCmd,       // runtime commands from client
+			charCmdCompat, // for compatibility with Cliff's HT
 		},
 	})
 
@@ -171,9 +202,17 @@ func (t *Para) Start() string {
 
 			t.update()
 
-			if t.resetRequested {
-				t.resetRequested = false
+			if t.orientationReset {
+				t.orientationReset = false
 				t.callbackHandler.OnOrientationReset()
+			}
+			if t.factoryReset {
+				t.factoryReset = false
+				t.callbackHandler.OnFactoryReset()
+			}
+			if t.reboot {
+				t.reboot = false
+				t.callbackHandler.OnReboot()
 			}
 
 		}

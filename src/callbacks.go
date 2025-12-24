@@ -1,19 +1,38 @@
 package main
 
+import (
+	"machine"
+	"time"
+)
+
 type BluetoothCallbackHandler struct {
 }
 
 func (b *BluetoothCallbackHandler) OnConnect() {
-	state.connected = true
 	println("Bluetooth connected")
+	state.connected = true
 }
 
 func (b *BluetoothCallbackHandler) OnDisconnect() {
-	state.connected = false
 	println("Bluetooth disconnected")
+	state.connected = false
 }
 
 func (b *BluetoothCallbackHandler) OnOrientationReset() {
-	o.Reset()
 	println("Orientation reset via Bluetooth command")
+	o.Reset()
+}
+
+func (b *BluetoothCallbackHandler) OnFactoryReset() {
+	println("Factory reset via Bluetooth command")
+	f = NewFlash() // reset flash object
+	f.Store()      // store default flash data
+	time.Sleep(1 * time.Second)
+	machine.CPUReset()
+}
+
+func (b *BluetoothCallbackHandler) OnReboot() {
+	println("Reboot via Bluetooth command")
+	time.Sleep(1 * time.Second)
+	machine.CPUReset()
 }
