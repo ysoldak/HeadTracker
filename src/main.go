@@ -76,7 +76,7 @@ func init() {
 		state.address = "    PPM OUTPUT"
 		state.connected = true
 	} else {
-		t = trainer.NewPara("HT", &BluetoothCallbackHandler{})
+		t = trainer.NewPara("HT", Version, &BluetoothCallbackHandler{})
 		state.address = "B1:6B:00:B5:BA:BE"
 		state.connected = false
 	}
