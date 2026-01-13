@@ -23,6 +23,9 @@ func setSoftDeviceSystemAttributes() {
 		}
 		if err == 0x3002 { // BLE_ERROR_INVALID_CONN_HANDLE
 			connHandle++
+		} else {
+			println("connHandle", connHandle, "sd_ble_gatts_sys_attr_set error:", err)
+			return
 		}
 		if connHandle > 128 {
 			return
