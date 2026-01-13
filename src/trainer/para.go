@@ -25,6 +25,7 @@ type Para struct {
 	fff6Handle bluetooth.Characteristic
 
 	name            string
+	version         string
 	callbackHandler CallbackHandler
 
 	buffer    [20]byte
@@ -49,10 +50,11 @@ type CallbackHandler interface {
 	OnFactoryReset()
 }
 
-func NewPara(name string, callbackHandler CallbackHandler) *Para {
+func NewPara(name string, version string, callbackHandler CallbackHandler) *Para {
 	return &Para{
 		adapter:         bluetooth.DefaultAdapter,
 		name:            name,
+		version:         version,
 		callbackHandler: callbackHandler,
 		paired:          false,
 		channels:        [8]uint16{1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500},
@@ -66,6 +68,13 @@ func (t *Para) Start() string {
 		Handle: nil,
 		UUID:   bluetooth.CharacteristicUUIDSystemID,
 		Value:  []byte{0xF1, 0x63, 0x1B, 0xB0, 0x6F, 0x80, 0x28, 0xFE},
+		Flags:  bluetooth.CharacteristicReadPermission,
+	}
+
+	firmware := bluetooth.CharacteristicConfig{
+		Handle: nil,
+		UUID:   bluetooth.CharacteristicUUIDFirmwareRevisionString,
+		Value:  []byte(t.version),
 		Flags:  bluetooth.CharacteristicReadPermission,
 	}
 
@@ -93,7 +102,7 @@ func (t *Para) Start() string {
 	t.adapter.AddService(&bluetooth.Service{
 		UUID: bluetooth.ServiceUUIDDeviceInformation,
 		Characteristics: []bluetooth.CharacteristicConfig{
-			sysid, manufacturer, ieee, pnpid,
+			sysid, firmware, manufacturer, ieee, pnpid,
 		},
 	})
 
