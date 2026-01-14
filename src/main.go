@@ -152,7 +152,7 @@ func main() {
 		}
 
 		if time.Now().After(stopTime) && !f.IsEmpty() { // when had some calibration already, force it if was not able to find better quickly
-			o.SetOffsets(f.gyrCalOffsets)
+			o.SetOffsets(f.GyrCalOffsets())
 			o.SetStable(true)
 		}
 		if o.Stable() {
@@ -273,15 +273,11 @@ func loadState() {
 		println(time.Now().Unix(), err.Error())
 	}
 
-	// set offsets, they are either actual previous calibration result or zeroes inially and in case of error
-	o.SetOffsets(f.gyrCalOffsets) // zeroes at worst
+	// set offsets, they are either actual previous calibration result or zeroes inially and in case of an error
+	o.SetOffsets(f.GyrCalOffsets()) // zeroes at worst
 
-	// set name
-	n := 0
-	for n < len(f.deviceName) && f.deviceName[n] != 0 {
-		n++
-	}
-	state.deviceName = string(f.deviceName[:n])
+	// set device name
+	state.deviceName = f.DeviceName()
 }
 
 // Store current configuration & calibration to flash (~85300us)
@@ -295,30 +291,10 @@ func storeState(iter uint16) {
 	pinDebugData.High()
 	defer pinDebugData.Low()
 
-	mustStore := false
-	for i := range o.Offsets() {
-		if abs(f.gyrCalOffsets[i]-o.Offsets()[i]) > flashStoreTreshold {
-			f.gyrCalOffsets[i] = o.Offsets()[i]
-			mustStore = true
-		}
-	}
+	gyrCalChanged := f.SetGyrCalOffsets(o.Offsets(), flashStoreTreshold)
+	deviceNameChanged := f.SetDeviceName(state.deviceName)
 
-	newName := false
-	for i := range len(f.deviceName) {
-		b := byte(0)
-		if i < len(state.deviceName) {
-			b = byte(state.deviceName[i])
-		}
-		if f.deviceName[i] != b {
-			newName = true
-		}
-		if newName {
-			f.deviceName[i] = b
-			mustStore = true
-		}
-	}
-
-	if !mustStore {
+	if !gyrCalChanged && !deviceNameChanged {
 		return
 	}
 

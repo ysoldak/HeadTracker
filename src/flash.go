@@ -130,6 +130,49 @@ func (fd *Flash) Store() error {
 	return nil
 }
 
+func (fd *Flash) SetGyrCalOffsets(offsets [3]int32, threshold int32) bool {
+	overThreshold := false
+	for i := range offsets {
+		if abs(fd.gyrCalOffsets[i]-offsets[i]) > threshold {
+			overThreshold = true
+			break
+		}
+	}
+	if overThreshold {
+		fd.gyrCalOffsets = offsets
+	}
+	return overThreshold
+}
+
+func (fd *Flash) GyrCalOffsets() [3]int32 {
+	return fd.gyrCalOffsets
+}
+
+func (fd *Flash) SetDeviceName(name string) bool {
+	newName := false
+	n := 0
+	for n < min(FLASH_DEVICE_NAME_LENGTH, len(name)) {
+		if fd.deviceName[n] != name[n] {
+			fd.deviceName[n] = name[n]
+			newName = true
+		}
+		n++
+	}
+	for n < FLASH_DEVICE_NAME_LENGTH {
+		fd.deviceName[n] = 0
+		n++
+	}
+	return newName
+}
+
+func (fd *Flash) DeviceName() string {
+	n := 0
+	for n < FLASH_DEVICE_NAME_LENGTH && fd.deviceName[n] != 0 {
+		n++
+	}
+	return string(fd.deviceName[:n])
+}
+
 func toInt32(b []byte) int32 {
 	return int32(b[0]) | int32(b[1])<<8 | int32(b[2])<<16 | int32(b[3])<<24
 }
