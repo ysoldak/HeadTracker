@@ -9,11 +9,12 @@ var errFlashWrongChecksum = errors.New("wrong checksum reading data from flash")
 var errFlashWrongLength = errors.New("unsupported flash data length")
 
 const (
-	FLASH_HEADER_BYTES      = 2 // checksum + length
-	FLASH_GYR_CAL_BLOCKS    = 3 // gyro calibration offsets (int32 each)
-	FLASH_GYR_CAL_BYTES     = FLASH_GYR_CAL_BLOCKS * 4
-	FLASH_DEVICE_NAME_BYTES = 16 // custom device name
-	FLASH_LENGTH            = FLASH_HEADER_BYTES + FLASH_GYR_CAL_BYTES + FLASH_DEVICE_NAME_BYTES
+	FLASH_HEADER_BYTES       = 2 // checksum + length
+	FLASH_GYR_CAL_BLOCKS     = 3 // gyro calibration offsets (int32 each)
+	FLASH_GYR_CAL_BYTES      = FLASH_GYR_CAL_BLOCKS * 4
+	FLASH_DEVICE_NAME_BYTES  = 16 // custom device name
+	FLASH_AXIS_MAPPING_BYTES = 3  // axis mapping (3 bytes)
+	FLASH_LENGTH             = FLASH_HEADER_BYTES + FLASH_GYR_CAL_BYTES + FLASH_DEVICE_NAME_BYTES + FLASH_AXIS_MAPPING_BYTES
 )
 
 type Flash struct {
@@ -21,6 +22,7 @@ type Flash struct {
 	length        byte
 	gyrCalOffsets [FLASH_GYR_CAL_BLOCKS]int32
 	deviceName    [FLASH_DEVICE_NAME_BYTES]byte
+	axisMapping   [FLASH_AXIS_MAPPING_BYTES]byte
 }
 
 func NewFlash() *Flash {
@@ -29,6 +31,7 @@ func NewFlash() *Flash {
 		length:        FLASH_LENGTH,
 		gyrCalOffsets: [FLASH_GYR_CAL_BLOCKS]int32{0, 0, 0},
 		deviceName:    [FLASH_DEVICE_NAME_BYTES]byte{'H', 'T'},
+		axisMapping:   [FLASH_AXIS_MAPPING_BYTES]byte{0x10, 0x11, 0x12}, // default mapping: all axes enabled, not inverted, mapped to first 3 channels
 	}
 }
 
@@ -72,7 +75,7 @@ func (fd *Flash) Load() error {
 	}
 	offset += FLASH_GYR_CAL_BYTES
 
-	// read custom name, best effort
+	// read device name, best effort
 	if length < offset+FLASH_DEVICE_NAME_BYTES {
 		println("Incomplete flash data, length:", length)
 		return nil // this is fine, just no name
@@ -82,9 +85,20 @@ func (fd *Flash) Load() error {
 	}
 	offset += FLASH_DEVICE_NAME_BYTES
 
+	// read axis mapping, best effort
+	if length < offset+FLASH_AXIS_MAPPING_BYTES {
+		println("Incomplete flash data, length:", length)
+		return nil // this is fine, just no mapping
+	}
+	for i := 0; i < FLASH_AXIS_MAPPING_BYTES; i++ {
+		fd.axisMapping[i] = data[offset+i]
+	}
+	offset += FLASH_AXIS_MAPPING_BYTES
+
 	println("Loaded from flash")
-	println("  device name:", string(fd.deviceName[:]))
 	println("  gyro calibration:", fd.gyrCalOffsets[0], fd.gyrCalOffsets[1], fd.gyrCalOffsets[2])
+	println("  device name:", fd.DeviceName())
+	println("  axis mapping:", fd.axisMapping[0], fd.axisMapping[1], fd.axisMapping[2])
 
 	return nil
 }
@@ -108,6 +122,12 @@ func (fd *Flash) Store() error {
 	}
 	offset += FLASH_DEVICE_NAME_BYTES
 
+	// axis mapping
+	for i := 0; i < FLASH_AXIS_MAPPING_BYTES; i++ {
+		data[offset+i] = fd.axisMapping[i]
+	}
+	offset += FLASH_AXIS_MAPPING_BYTES
+
 	// xor all bytes, but the first
 	checksum := byte(0)
 	for _, b := range data[1:] {
@@ -125,9 +145,9 @@ func (fd *Flash) Store() error {
 	}
 
 	println("Stored to flash")
-	println("  device name:", string(fd.deviceName[:]))
 	println("  gyro calibration:", fd.gyrCalOffsets[0], fd.gyrCalOffsets[1], fd.gyrCalOffsets[2])
-
+	println("  device name:", fd.DeviceName())
+	println("  axis mapping:", fd.axisMapping[0], fd.axisMapping[1], fd.axisMapping[2])
 	return nil
 }
 
@@ -172,6 +192,21 @@ func (fd *Flash) DeviceName() string {
 		n++
 	}
 	return string(fd.deviceName[:n])
+}
+
+func (fd *Flash) SetAxisMapping(mapping [FLASH_AXIS_MAPPING_BYTES]byte) bool {
+	newMapping := false
+	for i := 0; i < FLASH_AXIS_MAPPING_BYTES; i++ {
+		if fd.axisMapping[i] != mapping[i] {
+			fd.axisMapping[i] = mapping[i]
+			newMapping = true
+		}
+	}
+	return newMapping
+}
+
+func (fd *Flash) AxisMapping() [FLASH_AXIS_MAPPING_BYTES]byte {
+	return fd.axisMapping
 }
 
 func toInt32(b []byte) int32 {

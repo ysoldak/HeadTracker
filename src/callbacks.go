@@ -41,3 +41,8 @@ func (b *BluetoothCallbackHandler) OnDeviceNameChange(name string) {
 	println("Device name changed to", name)
 	state.deviceName = name
 }
+
+func (b *BluetoothCallbackHandler) OnAxisMappingChange(mapping [3]byte) {
+	println("Axis mapping changed to", mapping[0], mapping[1], mapping[2])
+	state.axisMapping = mapping
+}
