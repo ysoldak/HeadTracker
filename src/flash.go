@@ -131,7 +131,7 @@ func (fd *Flash) Store() error {
 	return nil
 }
 
-func (fd *Flash) SetGyrCalOffsets(offsets [3]int32, threshold int32) bool {
+func (fd *Flash) SetGyrCalOffsets(offsets [FLASH_GYR_CAL_BLOCKS]int32, threshold int32) bool {
 	overThreshold := false
 	for i := range offsets {
 		if abs(fd.gyrCalOffsets[i]-offsets[i]) > threshold {
@@ -145,7 +145,7 @@ func (fd *Flash) SetGyrCalOffsets(offsets [3]int32, threshold int32) bool {
 	return overThreshold
 }
 
-func (fd *Flash) GyrCalOffsets() [3]int32 {
+func (fd *Flash) GyrCalOffsets() [FLASH_GYR_CAL_BLOCKS]int32 {
 	return fd.gyrCalOffsets
 }
 
