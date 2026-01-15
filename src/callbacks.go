@@ -36,3 +36,8 @@ func (b *BluetoothCallbackHandler) OnReboot() {
 	time.Sleep(1 * time.Second)
 	machine.CPUReset()
 }
+
+func (b *BluetoothCallbackHandler) OnDeviceNameChange(name string) {
+	println("Device name changed to", name)
+	state.deviceName = name
+}

@@ -8,11 +8,19 @@ import (
 	"tinygo.org/x/bluetooth"
 )
 
-const CHAR_COMMANDS = 0xFFC1        // 'C' is for Commands (runtime effects)
-const CHAR_COMMANDS_COMPAT = 0xAFF2 // Cliff's Head Tracker reset command characteristic
-const CMD_ORIENTATION_RESET = 'R'
-const CMD_FACTORY_RESET = 'F'
-const CMD_REBOOT = 'B'
+// 'C' is for Commands (runtime effects)
+const (
+	CHAR_COMMANDS         = 0xFFC1
+	CHAR_COMMANDS_COMPAT  = 0xAFF2 // Cliff's Head Tracker reset command characteristic
+	CMD_ORIENTATION_RESET = 'R'    // reset orientation
+	CMD_FACTORY_RESET     = 'F'    // factory reset
+	CMD_REBOOT            = 'B'    // reboot device
+)
+
+// 'D' is for Data (to persist)
+const (
+	CHAR_DATA_DEVICE_NAME = 0xFFD1 // device name (up to 16 bytes)
+)
 
 // Have to send this to master radio on connect otherwise high chance opentx para code will never receive "Connected" message
 // Since it looks for "Connected\r\n" and sometimes(?) bluetooth underlying layer on master radio
@@ -24,7 +32,6 @@ type Para struct {
 	adv        *bluetooth.Advertisement
 	fff6Handle bluetooth.Characteristic
 
-	name            string
 	callbackHandler CallbackHandler
 
 	buffer    [20]byte
@@ -33,9 +40,19 @@ type Para struct {
 	paired   bool
 	channels [8]uint16
 
+	remote ParaRemote
+}
+
+type ParaRemote struct {
+	// remote commands
 	orientationReset bool
 	factoryReset     bool
 	reboot           bool
+
+	// remote configuration
+	nameChanged bool
+	nameValue   [16]byte
+	nameLength  byte
 }
 
 type CallbackHandler interface {
@@ -47,20 +64,32 @@ type CallbackHandler interface {
 	OnOrientationReset()
 	OnReboot()
 	OnFactoryReset()
+
+	// remote configuration
+	OnDeviceNameChange(name string)
 }
 
 func NewPara(name string, callbackHandler CallbackHandler) *Para {
-	return &Para{
+	para := Para{
 		adapter:         bluetooth.DefaultAdapter,
-		name:            name,
 		callbackHandler: callbackHandler,
 		paired:          false,
 		channels:        [8]uint16{1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500},
+		remote: ParaRemote{
+			nameChanged: false,
+			nameLength:  byte(len(name)),
+		},
 	}
+	for i := 0; i < len(name) && i < 16; i++ {
+		para.remote.nameValue[i] = byte(name[i])
+	}
+	return &para
 }
 
 func (t *Para) Start() string {
 	t.adapter.Enable()
+
+	setDeviceName(t.remote.nameValue[:t.remote.nameLength])
 
 	sysid := bluetooth.CharacteristicConfig{
 		Handle: nil,
@@ -72,7 +101,7 @@ func (t *Para) Start() string {
 	manufacturer := bluetooth.CharacteristicConfig{
 		Handle: nil,
 		UUID:   bluetooth.CharacteristicUUIDManufacturerNameString,
-		Value:  []byte{0x41, 0x70, 0x70},
+		Value:  []byte{'S', 'k', 'y', 'G', 'a', 'd', 'g', 'e', 't', 's', ' ', 'A', 'B'},
 		Flags:  bluetooth.CharacteristicReadPermission,
 	}
 
@@ -138,13 +167,13 @@ func (t *Para) Start() string {
 	// B - reboot device
 	commandHandler := func(client bluetooth.Connection, offset int, value []byte) {
 		if len(value) == 1 && value[0] == CMD_ORIENTATION_RESET {
-			t.orientationReset = true
+			t.remote.orientationReset = true
 		}
 		if len(value) == 1 && value[0] == CMD_FACTORY_RESET {
-			t.factoryReset = true
+			t.remote.factoryReset = true
 		}
 		if len(value) == 1 && value[0] == CMD_REBOOT {
-			t.reboot = true
+			t.remote.reboot = true
 		}
 	}
 	charCmd := bluetooth.CharacteristicConfig{
@@ -163,6 +192,25 @@ func (t *Para) Start() string {
 		WriteEvent: commandHandler,
 	}
 
+	charDeviceName := bluetooth.CharacteristicConfig{
+		Handle: nil,
+		UUID:   bluetooth.New16BitUUID(CHAR_DATA_DEVICE_NAME),
+		Value:  t.remote.nameValue[:t.remote.nameLength],
+		Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
+		WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
+			if len(value) == 0 {
+				return
+			}
+			n := 0
+			for n < len(t.remote.nameValue) && n < len(value) {
+				t.remote.nameValue[n] = value[n]
+				n++
+			}
+			t.remote.nameLength = byte(n)
+			t.remote.nameChanged = true
+		},
+	}
+
 	t.adapter.AddService(&bluetooth.Service{
 		UUID: bluetooth.New16BitUUID(0xFFF0),
 		Characteristics: []bluetooth.CharacteristicConfig{
@@ -170,15 +218,16 @@ func (t *Para) Start() string {
 			fff2,
 			fff3,
 			fff5,
-			fff6,          // channels data
-			charCmd,       // runtime commands from client
-			charCmdCompat, // for compatibility with Cliff's HT
+			fff6,           // channels data
+			charCmd,        // runtime commands from client
+			charCmdCompat,  // for compatibility with Cliff's HT
+			charDeviceName, // device name
 		},
 	})
 
 	t.adv = t.adapter.DefaultAdvertisement()
 	t.adv.Configure(bluetooth.AdvertisementOptions{
-		LocalName:    t.name,
+		LocalName:    string(t.remote.nameValue[:t.remote.nameLength]),
 		ServiceUUIDs: []bluetooth.UUID{bluetooth.New16BitUUID(0xFFF0)},
 	})
 	t.adv.Start()
@@ -202,17 +251,30 @@ func (t *Para) Start() string {
 
 			t.update()
 
-			if t.orientationReset {
-				t.orientationReset = false
+			if t.remote.orientationReset {
+				t.remote.orientationReset = false
 				t.callbackHandler.OnOrientationReset()
 			}
-			if t.factoryReset {
-				t.factoryReset = false
+			if t.remote.factoryReset {
+				t.remote.factoryReset = false
 				t.callbackHandler.OnFactoryReset()
 			}
-			if t.reboot {
-				t.reboot = false
+			if t.remote.reboot {
+				t.remote.reboot = false
 				t.callbackHandler.OnReboot()
+			}
+
+			if t.remote.nameChanged {
+				t.remote.nameChanged = false
+				nameBytes := t.remote.nameValue[:t.remote.nameLength]
+				setDeviceName(nameBytes)
+				t.callbackHandler.OnDeviceNameChange(string(nameBytes))
+				// update advertisement name
+				// can't do it in the write handler or on disconnect due to allocation restrictions in interrupt handlers
+				t.adv.Configure(bluetooth.AdvertisementOptions{
+					LocalName:    string(nameBytes),
+					ServiceUUIDs: []bluetooth.UUID{bluetooth.New16BitUUID(0xFFF0)},
+				})
 			}
 
 		}

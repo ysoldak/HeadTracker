@@ -4,6 +4,7 @@ package trainer
 
 // #include "ble.h"
 import "C"
+import "unsafe"
 
 // Theory https://devzone.nordicsemi.com/f/nordic-q-a/15571/automatically-start-notification-upon-connection-event-manually-write-cccd---short-tutorial-on-notifications
 // In practice these values were manually extracted after connecting to head tracker with BlueSee app
@@ -31,4 +32,12 @@ func setSoftDeviceSystemAttributes() {
 			return
 		}
 	}
+}
+
+func setDeviceName(name []byte) {
+	length := uint16(len(name))
+	secMode := C.ble_gap_conn_sec_mode_t{}
+	secMode.set_bitfield_sm(1)
+	secMode.set_bitfield_lv(1)
+	C.sd_ble_gap_device_name_set(&secMode, (*C.uint8_t)(unsafe.Pointer(&name[0])), C.uint16_t(length))
 }
