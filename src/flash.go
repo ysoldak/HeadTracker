@@ -67,7 +67,7 @@ func (fd *Flash) Load() error {
 		println("Incomplete flash data, length:", length)
 		return nil // this is fine, just no gyro calibration
 	}
-	for i := range FLASH_GYR_CAL_BYTES / 4 {
+	for i := range FLASH_GYR_CAL_BLOCKS {
 		fd.gyrCalOffsets[i] = toInt32(data[offset+i*4 : offset+(i+1)*4])
 	}
 	offset += FLASH_GYR_CAL_BYTES
@@ -97,7 +97,7 @@ func (fd *Flash) Store() error {
 	offset := FLASH_HEADER_BYTES
 
 	// gyro calibration
-	for i := range FLASH_GYR_CAL_BYTES / 4 {
+	for i := range FLASH_GYR_CAL_BLOCKS {
 		fromInt32(data[offset+i*4:offset+(i+1)*4], fd.gyrCalOffsets[i])
 	}
 	offset += FLASH_GYR_CAL_BYTES
