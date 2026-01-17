@@ -27,7 +27,7 @@ const (
 	radToMs = 512.0 / math.Pi
 )
 
-const flashStoreTreshold = 100_000
+const flashStoreThreshold = 100_000
 
 var (
 	d *display.Display
@@ -165,7 +165,7 @@ func main() {
 	off(ledR)
 
 	// store calibration values (0 to force store now)
-	storeState(0)
+	saveState(0)
 
 	// Trainer (Bluetooth or PPM)
 	if !pinSelectPPM.Get() { // Low means connected to GND => PPM output requested
@@ -223,7 +223,7 @@ func main() {
 		// handle state, period and performance varies
 		blinkMain(iter)  // very fast
 		blinkPara(iter)  // very fast
-		storeState(iter) // very slow (~85300us, can affect sensor fusion if executed too often; as it is so slow no point to offset it)
+		saveState(iter)  // very slow (~85300us, can affect sensor fusion if executed too often; as it is so slow no point to offset it)
 		printState(iter) // fast (~1500us)
 
 		iter += PERIOD
@@ -270,7 +270,7 @@ func loadState() {
 	}
 	// clear data on flash, "f" object is empty at this point
 	if resetGyrCalOffsets {
-		err := f.Store()
+		err := f.Save()
 		if err != nil {
 			println(time.Now().Unix(), err.Error())
 		}
@@ -292,10 +292,10 @@ func loadState() {
 	state.axisMapping = f.AxisMapping()
 }
 
-// Store current configuration & calibration to flash (~85300us)
+// Save current configuration & calibration to flash (~85300us)
 // The operation is slow and flash has limited number of write cycles,
 // so only do this when difference is large enough and not too often.
-func storeState(iter uint16) {
+func saveState(iter uint16) {
 	if iter%FLASH_COUNT != 0 {
 		return
 	}
@@ -303,7 +303,7 @@ func storeState(iter uint16) {
 	pinDebugData.High()
 	defer pinDebugData.Low()
 
-	gyrCalChanged := f.SetGyrCalOffsets(o.Offsets(), flashStoreTreshold)
+	gyrCalChanged := f.SetGyrCalOffsets(o.Offsets(), flashStoreThreshold)
 	deviceNameChanged := f.SetDeviceName(state.deviceName)
 	axisMappingChanged := f.SetAxisMapping(state.axisMapping)
 
@@ -311,7 +311,7 @@ func storeState(iter uint16) {
 		return
 	}
 
-	err := f.Store()
+	err := f.Save()
 	if err != nil {
 		println("Flash error:", err.Error())
 	}

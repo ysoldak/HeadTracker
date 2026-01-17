@@ -41,6 +41,8 @@ func (fd *Flash) IsEmpty() bool {
 
 func (fd *Flash) Load() error {
 
+	println("Loading from flash")
+
 	data := make([]byte, FLASH_LENGTH)
 
 	_, err := machine.Flash.ReadAt(data[:], 0)
@@ -73,6 +75,7 @@ func (fd *Flash) Load() error {
 	for i := range FLASH_GYR_CAL_BLOCKS {
 		fd.gyrCalOffsets[i] = toInt32(data[offset+i*4 : offset+(i+1)*4])
 	}
+	println("  gyro calibration:", fd.gyrCalOffsets[0], fd.gyrCalOffsets[1], fd.gyrCalOffsets[2])
 	offset += FLASH_GYR_CAL_BYTES
 
 	// read device name, best effort
@@ -83,6 +86,7 @@ func (fd *Flash) Load() error {
 	for i := 0; i < FLASH_DEVICE_NAME_BYTES; i++ {
 		fd.deviceName[i] = data[offset+i]
 	}
+	println("  device name:", fd.DeviceName())
 	offset += FLASH_DEVICE_NAME_BYTES
 
 	// read axis mapping, best effort
@@ -93,17 +97,15 @@ func (fd *Flash) Load() error {
 	for i := 0; i < FLASH_AXIS_MAPPING_BYTES; i++ {
 		fd.axisMapping[i] = data[offset+i]
 	}
-	offset += FLASH_AXIS_MAPPING_BYTES
-
-	println("Loaded from flash")
-	println("  gyro calibration:", fd.gyrCalOffsets[0], fd.gyrCalOffsets[1], fd.gyrCalOffsets[2])
-	println("  device name:", fd.DeviceName())
 	println("  axis mapping:", fd.axisMapping[0], fd.axisMapping[1], fd.axisMapping[2])
+	offset += FLASH_AXIS_MAPPING_BYTES
 
 	return nil
 }
 
-func (fd *Flash) Store() error {
+func (fd *Flash) Save() error {
+
+	println("Saving to flash")
 
 	data := make([]byte, FLASH_LENGTH)
 
@@ -114,18 +116,21 @@ func (fd *Flash) Store() error {
 	for i := range FLASH_GYR_CAL_BLOCKS {
 		fromInt32(data[offset+i*4:offset+(i+1)*4], fd.gyrCalOffsets[i])
 	}
+	println("  gyro calibration:", fd.gyrCalOffsets[0], fd.gyrCalOffsets[1], fd.gyrCalOffsets[2])
 	offset += FLASH_GYR_CAL_BYTES
 
 	// device name
 	for i := 0; i < FLASH_DEVICE_NAME_BYTES; i++ {
 		data[offset+i] = fd.deviceName[i]
 	}
+	println("  device name:", fd.DeviceName())
 	offset += FLASH_DEVICE_NAME_BYTES
 
 	// axis mapping
 	for i := 0; i < FLASH_AXIS_MAPPING_BYTES; i++ {
 		data[offset+i] = fd.axisMapping[i]
 	}
+	println("  axis mapping:", fd.axisMapping[0], fd.axisMapping[1], fd.axisMapping[2])
 	offset += FLASH_AXIS_MAPPING_BYTES
 
 	// xor all bytes, but the first
@@ -144,10 +149,6 @@ func (fd *Flash) Store() error {
 		return err
 	}
 
-	println("Stored to flash")
-	println("  gyro calibration:", fd.gyrCalOffsets[0], fd.gyrCalOffsets[1], fd.gyrCalOffsets[2])
-	println("  device name:", fd.DeviceName())
-	println("  axis mapping:", fd.axisMapping[0], fd.axisMapping[1], fd.axisMapping[2])
 	return nil
 }
 

@@ -26,7 +26,7 @@ func (b *BluetoothCallbackHandler) OnOrientationReset() {
 func (b *BluetoothCallbackHandler) OnFactoryReset() {
 	println("Factory reset via Bluetooth command")
 	f = NewFlash() // reset flash object
-	f.Store()      // store default flash data
+	f.Save()       // save default flash data
 	time.Sleep(1 * time.Second)
 	machine.CPUReset()
 }
