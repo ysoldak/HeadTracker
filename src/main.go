@@ -27,7 +27,7 @@ const (
 	radToMs = 512.0 / math.Pi
 )
 
-const flashStoreTreshold = 100_000
+const flashStoreThreshold = 100_000
 
 var (
 	d *display.Display
@@ -48,10 +48,11 @@ var (
 )
 
 var state struct {
-	address    string
-	channels   [3]uint16
-	connected  bool
-	deviceName string
+	address     string
+	channels    [3]uint16
+	connected   bool
+	deviceName  string
+	axisMapping [3]byte
 }
 
 func init() {
@@ -164,14 +165,14 @@ func main() {
 	off(ledR)
 
 	// store calibration values (0 to force store now)
-	storeState(0)
+	saveState(0)
 
 	// Trainer (Bluetooth or PPM)
 	if !pinSelectPPM.Get() { // Low means connected to GND => PPM output requested
 		t = trainer.NewPPM(pinOutputPPM) // PPM wire
 		state.connected = true
 	} else {
-		t = trainer.NewPara(state.deviceName, &BluetoothCallbackHandler{})
+		t = trainer.NewPara(state.deviceName, state.axisMapping, &BluetoothCallbackHandler{})
 		state.connected = false
 	}
 	state.address = t.Start()
@@ -204,8 +205,16 @@ func main() {
 		// set channels, every 20ms (~300us)
 		for i, a := range o.Angles() {
 			state.channels[i] = angleToChannel(a)
-			t.SetChannel(i, state.channels[i])
 			d.SetBar(byte(i), int16(1500-state.channels[i])/10, false)
+			chIndex := state.axisMapping[i] & 0x07 // channel index
+			chValue := state.channels[i]
+			if state.axisMapping[i]&0x10 != 0x10 { // axis disabled
+				chValue = 1500
+			}
+			if state.axisMapping[i]&0x20 == 0x20 { // axis inverted
+				chValue = 3000 - chValue
+			}
+			t.SetChannel(int(chIndex), chValue)
 		}
 
 		// update display, every 100ms (~15000us)
@@ -214,7 +223,7 @@ func main() {
 		// handle state, period and performance varies
 		blinkMain(iter)  // very fast
 		blinkPara(iter)  // very fast
-		storeState(iter) // very slow (~85300us, can affect sensor fusion if executed too often; as it is so slow no point to offset it)
+		saveState(iter)  // very slow (~85300us, can affect sensor fusion if executed too often; as it is so slow no point to offset it)
 		printState(iter) // fast (~1500us)
 
 		iter += PERIOD
@@ -261,7 +270,7 @@ func loadState() {
 	}
 	// clear data on flash, "f" object is empty at this point
 	if resetGyrCalOffsets {
-		err := f.Store()
+		err := f.Save()
 		if err != nil {
 			println(time.Now().Unix(), err.Error())
 		}
@@ -278,12 +287,15 @@ func loadState() {
 
 	// set device name
 	state.deviceName = f.DeviceName()
+
+	// set axis mapping
+	state.axisMapping = f.AxisMapping()
 }
 
-// Store current configuration & calibration to flash (~85300us)
+// Save current configuration & calibration to flash (~85300us)
 // The operation is slow and flash has limited number of write cycles,
 // so only do this when difference is large enough and not too often.
-func storeState(iter uint16) {
+func saveState(iter uint16) {
 	if iter%FLASH_COUNT != 0 {
 		return
 	}
@@ -291,14 +303,15 @@ func storeState(iter uint16) {
 	pinDebugData.High()
 	defer pinDebugData.Low()
 
-	gyrCalChanged := f.SetGyrCalOffsets(o.Offsets(), flashStoreTreshold)
+	gyrCalChanged := f.SetGyrCalOffsets(o.Offsets(), flashStoreThreshold)
 	deviceNameChanged := f.SetDeviceName(state.deviceName)
+	axisMappingChanged := f.SetAxisMapping(state.axisMapping)
 
-	if !gyrCalChanged && !deviceNameChanged {
+	if !gyrCalChanged && !deviceNameChanged && !axisMappingChanged {
 		return
 	}
 
-	err := f.Store()
+	err := f.Save()
 	if err != nil {
 		println("Flash error:", err.Error())
 	}

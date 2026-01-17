@@ -19,7 +19,25 @@ const (
 
 // 'D' is for Data (to persist)
 const (
-	CHAR_DATA_DEVICE_NAME = 0xFFD1 // device name (up to 16 bytes)
+	// device name (up to 16 bytes) - padded with zeros
+	CHAR_DATA_DEVICE_NAME = 0xFFD1
+
+	// axis mapping (3 bytes) - one byte per axis
+	//
+	// each byte has format: 0b00IE0OOO where
+	// - '0'   bit is not used,
+	// - 'I'   bit for inverted(1)/not inverted(0),
+	// - 'E'   bit for enabled(1)/disabled(0)
+	// - 'OOO' three bits for channel index offset (0-7),
+	//
+	// examples:
+	// - 0x10 means axis mapped to channel 1 (offset 0), enabled,  not inverted
+	// - 0x11 means axis mapped to channel 2 (offset 1), enabled,  not inverted
+	// - 0x25 means axis mapped to channel 6 (offset 5), disabled, inverted
+	// - 0x34 means axis mapped to channel 5 (offset 4), enabled,  inverted
+	//
+	// default mapping value: "0x101112" or "16 17 18" (first 3 channels, enabled, not inverted)
+	CHAR_DATA_AXIS_MAPPING = 0xFFD2
 )
 
 // Have to send this to master radio on connect otherwise high chance opentx para code will never receive "Connected" message
@@ -50,9 +68,11 @@ type ParaRemote struct {
 	reboot           bool
 
 	// remote configuration
-	nameChanged bool
-	nameValue   [16]byte
-	nameLength  byte
+	nameChanged        bool
+	nameValue          [16]byte
+	nameLength         byte
+	axisMappingChanged bool
+	axisMappingValue   [3]byte
 }
 
 type CallbackHandler interface {
@@ -67,17 +87,20 @@ type CallbackHandler interface {
 
 	// remote configuration
 	OnDeviceNameChange(name string)
+	OnAxisMappingChange(mapping [3]byte)
 }
 
-func NewPara(name string, callbackHandler CallbackHandler) *Para {
+func NewPara(name string, axisMapping [3]byte, callbackHandler CallbackHandler) *Para {
 	para := Para{
 		adapter:         bluetooth.DefaultAdapter,
 		callbackHandler: callbackHandler,
 		paired:          false,
 		channels:        [8]uint16{1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500},
 		remote: ParaRemote{
-			nameChanged: false,
-			nameLength:  byte(len(name)),
+			nameChanged:        false,
+			nameLength:         byte(len(name)),
+			axisMappingChanged: false,
+			axisMappingValue:   axisMapping,
 		},
 	}
 	for i := 0; i < len(name) && i < 16; i++ {
@@ -211,6 +234,22 @@ func (t *Para) Start() string {
 		},
 	}
 
+	charAxisMapping := bluetooth.CharacteristicConfig{
+		Handle: nil,
+		UUID:   bluetooth.New16BitUUID(CHAR_DATA_AXIS_MAPPING),
+		Value:  t.remote.axisMappingValue[:],
+		Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
+		WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
+			if len(value) != 3 {
+				return
+			}
+			for i := 0; i < 3; i++ {
+				t.remote.axisMappingValue[i] = value[i] & 0b00110111 // mask out unused bits
+			}
+			t.remote.axisMappingChanged = true
+		},
+	}
+
 	t.adapter.AddService(&bluetooth.Service{
 		UUID: bluetooth.New16BitUUID(0xFFF0),
 		Characteristics: []bluetooth.CharacteristicConfig{
@@ -218,10 +257,11 @@ func (t *Para) Start() string {
 			fff2,
 			fff3,
 			fff5,
-			fff6,           // channels data
-			charCmd,        // runtime commands from client
-			charCmdCompat,  // for compatibility with Cliff's HT
-			charDeviceName, // device name
+			fff6,            // channels data
+			charCmd,         // runtime commands from client
+			charCmdCompat,   // for compatibility with Cliff's HT
+			charDeviceName,  // device name
+			charAxisMapping, // axis mapping
 		},
 	})
 
@@ -263,7 +303,6 @@ func (t *Para) Start() string {
 				t.remote.reboot = false
 				t.callbackHandler.OnReboot()
 			}
-
 			if t.remote.nameChanged {
 				t.remote.nameChanged = false
 				nameBytes := t.remote.nameValue[:t.remote.nameLength]
@@ -276,7 +315,10 @@ func (t *Para) Start() string {
 					ServiceUUIDs: []bluetooth.UUID{bluetooth.New16BitUUID(0xFFF0)},
 				})
 			}
-
+			if t.remote.axisMappingChanged {
+				t.remote.axisMappingChanged = false
+				t.callbackHandler.OnAxisMappingChange(t.remote.axisMappingValue)
+			}
 		}
 	}()
 
