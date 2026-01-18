@@ -52,7 +52,7 @@ flash: softdevice
 	tinygo flash $(LD_FLAGS) -tags=$(EXTRA_TAGS) -target=$(TARGET) -size=$(SIZE) -opt=z -print-allocs=HeadTracker ./src
 
 monitor:
-	tinygo monitor -target=$(TARGET)
+	tinygo monitor -target=$(TARGET) -port=/dev/tty.usbmodem1101
 
 # --- Arduino Nano 33 BLE bootloader targets ---
 
@@ -84,4 +84,7 @@ debug-dap: build-for-debug
 # --- Test targets ---
 
 test-flash:
-	tinygo flash -target=xiao-ble -opt=z ./test
+	tinygo flash -target=xiao-ble -opt=z -port=/dev/tty.usbmodem101 ./test
+
+test-monitor:
+	tinygo monitor -target=xiao-ble -port=/dev/tty.usbmodem101

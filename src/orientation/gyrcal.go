@@ -26,7 +26,7 @@ package orientation
 
 const (
 	gyrCalBatchSize           = 1000                 // 1 sec on warm-up, 20 sec during regular operation
-	gyrCalBatchEscapeMax      = gyrCalBatchSize / 10 // tolerate 10% values outside threshold
+	gyrCalBatchEscapeMax      = gyrCalBatchSize / 25 // tolerate 4% values outside threshold
 	gyrCalForceAdjustment     = 10                   // first 10 batches applied always, regardles of number of escapes
 	gyrCalValueThreshold      = 4_000_000            // this is hardware center point precision (we can expect values in this range when stationary)
 	gyrCalCorrectionThreshold = 100_000              // shall be good enough to eliminate axis drift while keeping time of warm-up low

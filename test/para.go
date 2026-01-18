@@ -74,26 +74,34 @@ func (pt *ParaTrainer) connect() (err error) {
 	pt.char = chars[0]
 	pt.char.EnableNotifications(func(buf []byte) {
 		// d2Pin.High()
-		select {
-		case pt.dataCh <- buf:
-		default:
-			fmt.Println("ParaTrainer: Packet drop")
+		// defer d2Pin.Low()
+		err := decode(buf, pt.Channels)
+		if err != nil {
+			fmt.Printf("ParaTrainer: Failed to decode: %s\r\n", err)
+			return
 		}
-		// d2Pin.Low()
+		pt.dataTime = time.Now().Add(dataTimeout)
 	})
 
 	pt.dataTime = time.Now().Add(dataTimeout)
 
 	pt.Connected = true
 
-	fmt.Printf("ParaTrainer: Connected to %s\n", pt.address.String())
+	fmt.Printf("ParaTrainer: Connected to %s\r\n", pt.address.String())
 
 	return nil
 }
 
-func (pt *ParaTrainer) Scan() (err error) {
+func (pt *ParaTrainer) Start() (err error) {
 
 	// time.Sleep(5 * time.Second)
+
+	go func() {
+		for {
+			pt.Update()
+			time.Sleep(10 * time.Millisecond)
+		}
+	}()
 
 	for {
 		time.Sleep(1 * time.Second)
@@ -119,40 +127,16 @@ func (pt *ParaTrainer) Scan() (err error) {
 }
 
 func (pt *ParaTrainer) doScan(adapter *bluetooth.Adapter, result bluetooth.ScanResult) {
-	if result.LocalName() == "Hello" {
+	if result.HasServiceUUID(bluetooth.New16BitUUID(0xFFF0)) {
 		fmt.Printf("ParaTrainer: Found device %s\r\n", result.Address.String())
 		pt.address = &result.Address
 		adapter.StopScan()
 	}
 }
 
-// Read out the data channel and process the most recent packet.
-// This guarantees no clash between reading and writing.
-func (pt *ParaTrainer) Read() {
+func (pt *ParaTrainer) Update() {
 	// d1Pin.High()
 	// defer d1Pin.Low()
-	var buf []byte = nil
-	stop := false
-	for !stop {
-		select {
-		case buf = <-pt.dataCh:
-			// nop
-		default:
-			stop = true
-		}
-	}
-	if buf != nil {
-		channels, err := pt.decode(buf)
-		if err != nil {
-			fmt.Printf("ParaTrainer: Failed to decode: %s\r\n", err)
-			return
-		}
-		for i := 0; i < 8; i++ {
-			pt.Channels[i] = channels[i]
-		}
-		pt.dataTime = time.Now().Add(dataTimeout)
-		return
-	}
 	if pt.Connected && (time.Now().After(pt.dataTime)) {
 		fmt.Println("ParaTrainer: Data Timeout")
 		fmt.Println("ParaTrainer: Disconnecting")
@@ -169,57 +153,77 @@ func (pt *ParaTrainer) Read() {
 }
 
 // Decodes a para trainer packet into the channels array
-func (pt *ParaTrainer) decode(buffer []byte) (channels []uint16, err error) {
-
-	channels = make([]uint16, 8)
+func decode(buffer []byte, channels []uint16) (err error) {
 
 	var b byte
 	var bufferIndex byte = 0
 	var crc byte = 0x00
 
-	if buffer[bufferIndex] != START_STOP {
-		return nil, fmt.Errorf("invalid start byte")
+	if bufferIndex >= byte(len(buffer)) || buffer[bufferIndex] != START_STOP {
+		return fmt.Errorf("invalid start byte")
 	}
 	bufferIndex++
-	b, bufferIndex = pop(buffer, &bufferIndex, &crc)
+	b, bufferIndex, err = pop(buffer, &bufferIndex, &crc)
+	if err != nil {
+		return err
+	}
 	if b != 0x80 {
-		return nil, fmt.Errorf("invalid packet type")
+		return fmt.Errorf("invalid packet type")
 	}
 
 	for channel := 0; channel < 8; channel += 2 {
-		b, bufferIndex = pop(buffer, &bufferIndex, &crc)
+		b, bufferIndex, err = pop(buffer, &bufferIndex, &crc)
+		if err != nil {
+			return err
+		}
 		channelValue1 := uint16(b)
 
-		b, bufferIndex = pop(buffer, &bufferIndex, &crc)
+		b, bufferIndex, err = pop(buffer, &bufferIndex, &crc)
+		if err != nil {
+			return err
+		}
 		channelValue1 |= uint16(b&0xF0) << 4
 		channelValue2 := uint16(b&0x0F) << 4
 
-		b, bufferIndex = pop(buffer, &bufferIndex, &crc)
+		b, bufferIndex, err = pop(buffer, &bufferIndex, &crc)
+		if err != nil {
+			return err
+		}
 		channelValue2 |= uint16(b&0x0F)<<8 | uint16(b&0xF0)>>4
 
 		channels[channel] = channelValue1
 		channels[channel+1] = channelValue2
 	}
 
-	if buffer[bufferIndex] != crc {
-		fmt.Printf("CRC mismatch: %X != %X\n", buffer[bufferIndex], crc)
-		return nil, fmt.Errorf("CRC mismatch")
+	if bufferIndex >= byte(len(buffer)) || buffer[bufferIndex] != crc {
+		fmt.Printf("CRC mismatch: %X != %X at %d\n", buffer[bufferIndex], crc, bufferIndex)
+		for i := 0; i < len(buffer); i++ {
+			fmt.Printf("%02X ", buffer[i])
+		}
+		fmt.Println()
+		return fmt.Errorf("CRC mismatch")
 	}
-	if buffer[bufferIndex+1] != START_STOP {
-		return nil, fmt.Errorf("invalid stop byte")
+	if bufferIndex+1 >= byte(len(buffer)) || buffer[bufferIndex+1] != START_STOP {
+		return fmt.Errorf("invalid stop byte")
 	}
 
-	return channels, nil
+	return nil
 }
 
 // Unescapes bytes that were stuffed and updates CRC
-func pop(buffer []byte, bufferIndex *byte, crc *byte) (byte, byte) {
+func pop(buffer []byte, bufferIndex *byte, crc *byte) (byte, byte, error) {
+	if *bufferIndex >= byte(len(buffer)) {
+		return 0, *bufferIndex, fmt.Errorf("buffer overrun")
+	}
 	b := buffer[*bufferIndex]
 	*bufferIndex++
 	if b == BYTE_STUFF {
+		if *bufferIndex >= byte(len(buffer)) {
+			return 0, *bufferIndex, fmt.Errorf("buffer overrun after stuff byte")
+		}
 		b = buffer[*bufferIndex] ^ STUFF_MASK
 		*bufferIndex++
 	}
 	*crc ^= b
-	return b, *bufferIndex
+	return b, *bufferIndex, nil
 }
