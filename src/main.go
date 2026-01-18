@@ -206,7 +206,7 @@ func main() {
 		for i, a := range o.Angles() {
 			state.channels[i] = angleToChannel(a)
 			d.SetBar(byte(i), int16(1500-state.channels[i])/10, false)
-			chIndex := state.axisMapping[i] & 0x07 // channel index
+			chIndex := state.axisMapping[i] & 0x0F // channel index
 			chValue := state.channels[i]
 			if state.axisMapping[i]&0x10 != 0x10 { // axis disabled
 				chValue = 1500
