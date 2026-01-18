@@ -3,10 +3,11 @@
 Full configuration for the HeadTracker and [MicroCameraGimbal](https://cults3d.com/en/3d-model/gadget/micro-camera-gimbal-ysoldak) for [FrSky Tandem X20S](https://www.frsky-rc.com/product/tandem-x20s/) running [EthOS](https://ethos.frsky-rc.com).  
 
 Following assumes you have HT pan servo connected to CH13 and tilt servo to CH14. CH15 is for roll, typically unused.  
-HeadTracker runs on XIAO BLE board laying flat on goggles with USB-C facing forward. See [Walksnail Goggles X HeadTracker Case](https://www.etsy.com/se-en/listing/1660848137/head-tracker-for-walksnail-avatar).  
+HeadTracker runs on XIAO BLE board laying flat on goggles with USB-C facing to the right.  
 
-Note: For HeadTracker mounted sideways `HT TrainerN` mixers will be different, since different trainer channels corespond to different HT axes in that case.  
-See DJI V1/V2 with BDI Adapter and HT mounted in analog bay.
+<img src="../case/DJI%20Integra%20Xiao%20Ble.jpg" width="300">
+
+Note: For HeadTracker mounted some other way `HT TrainerN` mixers will be different, since different trainer channels corespond to different HT axes in that case.  
 
 See also [deep dive article](RadioConfiguration.md) if you want to understand where that % for mixers and outputs come from.
 
@@ -23,7 +24,7 @@ Channels count: 1
 Output1: CH13(TR3)
 ```
 
-### HT Pot2 (Pan)
+### HT Pot2 (Tilt)
 ```
 Name: HT 2
 Active condition: Always On
@@ -47,8 +48,7 @@ Weight Down: 133%
 Channels count: 1
 Output1: CH13(TR3)
 ```
-
-### HT Trainer1 (Roll)
+### HT Trainer1 (Tilt)
 ```
 Name: TR1
 Active condition: Always On
@@ -59,10 +59,10 @@ Weight Up: 200%
 Weight Down: 200%
 ...
 Channels count: 1
-Output1: CH15(TR1)
+Output1: CH14(TR1)
 ```
 
-### HT Trainer2 (Tilt)
+### HT Trainer2 (Roll)
 ```
 Name: TR2
 Active condition: Always On
@@ -73,8 +73,9 @@ Weight Up: 200%
 Weight Down: 200%
 ...
 Channels count: 1
-Output1: CH14(TR2)
+Output1: CH15(TR2)
 ```
+
 
 ### HT Kill Switch
 ```
@@ -85,8 +86,8 @@ Function Type: Replace
 ...
 Channels count: 3
 Output1: CH13(TR3)
-Output2: CH14(TR2)
-Output3: CH15(TR1)
+Output2: CH14(TR1)
+Output3: CH15(TR2)
 ```
 
 ## Outputs
@@ -102,9 +103,9 @@ Min: -150%
 Max: 150%
 ```
 
-## CH14 TR2
+## CH14 TR1
 ```
-Name: TR2
+Name: TR1
 Min: -133%
 Max: 133%
 ```
