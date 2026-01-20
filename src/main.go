@@ -119,7 +119,7 @@ func main() {
 	directions := [3]int32{1, 1, 1}
 	maxCorrection := int32(2_000_000)
 	iter := uint16(0)
-	stopTime := time.Now().Add(3 * time.Second)
+	stopTime := time.Now().Add(5 * time.Second)
 	for {
 
 		for i, v := range o.Calibrate() {
@@ -146,7 +146,7 @@ func main() {
 
 		time.Sleep(time.Millisecond)
 		iter++
-		iter %= 10_000
+		iter %= 60_000
 
 		if iter%DISPLAY_COUNT == 0 {
 			d.Update()

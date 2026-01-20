@@ -28,9 +28,16 @@ const (
 	// fast sweep
 	// step normal one side, very fast other side and wait a bit at 1000s
 	// example results: 6000 : 2000 | 1628 = 1571 diff  57     -37 @ 733 / 189 @ 5125
+	// STEP_POSITIVE = 5
+	// STEP_NEGATIVE = -100
+	// WAIT_AT       = 1000
+
+	// fast sweep with center stop
+	// step normal one side, very fast other side and wait a bit at 500s (3 points)
+	// example results: 6000 : 2000 | 1628 = 1571 diff  57     -37 @ 733 / 189 @ 5125
 	STEP_POSITIVE = 5
 	STEP_NEGATIVE = -100
-	WAIT_AT       = 1000
+	WAIT_AT       = 500
 
 	// slow sweep
 	// step slow one side, very fast other side and wait a bit at 1000s
@@ -89,34 +96,34 @@ func main() {
 
 	step := STEP_POSITIVE
 	delay := DELAY
-	iteration := 0
-	iterationMax := 10 * 60 * 10 // 10 minutes
+	iteration := int16(0)
+	iterationMax := int16(10 * 60 * 10) // 10 minutes
+	iterationStop := iterationMax + 10
+
+	diffSum := int64(0)
 
 	diffMin := int16(0)
-	diffMinIter := 0
+	diffMinIter := int16(0)
 	diffMax := int16(0)
-	diffMaxIter := 0
+	diffMaxIter := int16(0)
 
 	ticker := time.NewTicker(PERIOD * time.Millisecond)
 	for range ticker.C {
 
 		iteration++
-		if iteration > iterationMax {
-			break
-		}
 
-		// Following is just for outputs
+		// Print state
 		// 1. inverse servo command if needed
 		outMicros := uint16(micros)
 		if INVERSE {
 			outMicros = 3000 - outMicros
 		}
 		// 2. scale servo command to match expected values from the head tracker, as HT uses [988:2012] range for 360 degrees
-		outMicrosScaled := 1500 + (int16(outMicros)-1500)*10/39 // expected value
+		outMicrosScaled := 1500 + (int16(outMicros)-1500)*10/33 // expected value
 		// 3. value received from head tracker
 		outPara := para.Channels[CHANNEL_INDEX]
 		// 4. calculate difference
-		diff := int16(outMicrosScaled) - int16(outPara)
+		diff := int16(outPara) - int16(outMicrosScaled)
 		if diff < diffMin {
 			diffMin = diff
 			diffMinIter = iteration
@@ -125,8 +132,29 @@ func main() {
 			diffMax = diff
 			diffMaxIter = iteration
 		}
+
+		diffSum += int64(diff)
+
 		// 5. print results
-		println(iteration, ":", outMicros, "|", outMicrosScaled, "=", outPara, "diff ", diff, "   ", diffMin, "@", diffMinIter, "/", diffMax, "@", diffMaxIter)
+		println(iteration, ":", outMicros, "|", outMicrosScaled, "e=a", outPara, "diff ", diff,
+			"   ", diffSum/int64(iteration),
+			"   ", diffMin, "@", diffMinIter, "/", diffMax, "@", diffMaxIter)
+
+		// softly park servo at the center in the end
+		if iteration > iterationMax {
+			if iteration >= iterationStop {
+				micros = 1500
+			} else {
+				micros += (1500 - micros) / int(iterationStop-iteration)
+			}
+			duty = (d.Top() * uint32(micros)) / 20000
+			d.SetAll(duty)
+
+			if iteration >= iterationStop+10 {
+				break
+			}
+			continue // skip rest of the loop
+		}
 
 		// pause at 100s or 1000s or whatever WAIT_AT is set to
 		if micros%WAIT_AT == 0 {
@@ -155,10 +183,6 @@ func main() {
 		d.SetAll(duty)
 
 	}
-
-	// center servo in the end
-	duty = (d.Top() * uint32(1500)) / 20000
-	d.SetAll(duty)
 
 	// wait forever
 	for {

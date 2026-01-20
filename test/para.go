@@ -46,7 +46,9 @@ func (pt *ParaTrainer) connect() (err error) {
 
 	fmt.Println("ParaTrainer: Connecting to", *pt.address)
 
-	pt.device, err = pt.adapter.Connect(*pt.address, bluetooth.ConnectionParams{})
+	pt.device, err = pt.adapter.Connect(*pt.address, bluetooth.ConnectionParams{
+		ConnectionTimeout: bluetooth.NewDuration(1 * time.Second),
+	})
 	if err != nil {
 		return fmt.Errorf("failed to connect: %s", err)
 	}

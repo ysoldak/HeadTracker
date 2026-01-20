@@ -17,19 +17,20 @@ package orientation
 //
 // Note:
 // We can not expect the device be stationary for a long time, we also want to keep calibarion running
-// even during normal operation. The non-stationary values are recognised when they escape "gyrCalValueThreshold".
-// A whole batch of values is ignored when many large values are observed, see "gyrCalBatchEscapeMax".
+// even during normal operation. The non-stationary values are recognised when they escape "gyrCalEscapeThreshold".
+// A whole batch of values is ignored when many large values are observed, see "gyrCalBatchEscapeMaxCount".
 //
 // The calibration is good enough when latest offset correction for each of axes are small,
 // that means remaining error is small too and can not induce much drift anymore.
 // The good enough calibration is indicated by "Stable" flag.
 
 const (
-	gyrCalBatchSize           = 1000                 // 1 sec on warm-up, 20 sec during regular operation
-	gyrCalBatchEscapeMax      = gyrCalBatchSize / 25 // tolerate 4% values outside threshold
-	gyrCalForceAdjustment     = 10                   // first 10 batches applied always, regardles of number of escapes
-	gyrCalValueThreshold      = 4_000_000            // this is hardware center point precision (we can expect values in this range when stationary)
-	gyrCalCorrectionThreshold = 100_000              // shall be good enough to eliminate axis drift while keeping time of warm-up low
+	gyrCalBatchSize            = 1000                      // 1 sec on warm-up, 20 sec during regular operation
+	gyrCalBatchEscapeMaxCount  = gyrCalBatchSize / 100 * 3 // tolerate 3% values outside threshold
+	gyrCalForceBatchesCount    = 10                        // first 10 batches applied always, regardles of number of escapes
+	gyrCalEscapeThreshold      = 4_000_000                 // this is hardware center point precision (we can expect values in this range when stationary)
+	gyrCalStableCheckThreshold = 100_000                   // shall be small enough to eliminate axis drift while large enough to keep time of warm-up low
+	gyrCalStableCorrThreshold  = 25_000                    // when stable, corrections can be large only when induced by fast movements, so capping them
 )
 
 type GyrCal struct {
@@ -41,7 +42,7 @@ type GyrCal struct {
 
 	countApply  [3]int32
 	countEscape [3]int32
-	countAdjust [3]int32
+	countForce  [3]int32
 }
 
 func (g *GyrCal) Get(x, y, z int32) (int32, int32, int32) {
@@ -57,14 +58,14 @@ func (g *GyrCal) Apply(x, y, z int32) {
 	}
 	g.Stable = true
 	for i := 0; i < 3; i++ {
-		g.Stable = g.Stable && g.correctionLast[i] != 0 && abs(g.correctionLast[i]) < gyrCalCorrectionThreshold
+		g.Stable = g.Stable && g.correctionLast[i] != 0 && abs(g.correctionLast[i]) < gyrCalStableCheckThreshold
 	}
 }
 
 func (g *GyrCal) applyAxis(i, v int32) {
 	value := v - g.Offset[i]
-	if abs(value) > gyrCalValueThreshold {
-		value = sign(value) * gyrCalValueThreshold
+	if abs(value) > gyrCalEscapeThreshold {
+		value = sign(value) * gyrCalEscapeThreshold
 		g.countEscape[i]++
 	}
 	g.correctionSum[i] += value / gyrCalBatchSize // divide right away to avoid integer overflow
@@ -78,11 +79,14 @@ func (g *GyrCal) applyAxis(i, v int32) {
 
 func (g *GyrCal) adjustAxisOffset(i int32) {
 	// adjust when relatively stable or first times
-	if g.countEscape[i] < gyrCalBatchEscapeMax || g.countAdjust[i] < gyrCalForceAdjustment {
-		g.correctionLast[i] = g.correctionSum[i] / 2 // be careful and half-step
+	if g.countEscape[i] < gyrCalBatchEscapeMaxCount || g.countForce[i] < gyrCalForceBatchesCount {
+		g.correctionLast[i] = g.correctionSum[i] / 2                          // be careful and half-step
+		if g.Stable && abs(g.correctionLast[i]) > gyrCalStableCorrThreshold { // cap correction when stable
+			g.correctionLast[i] = sign(g.correctionLast[i]) * gyrCalStableCorrThreshold
+		}
 		g.Offset[i] += g.correctionLast[i]
-		if g.countAdjust[i] < gyrCalForceAdjustment {
-			g.countAdjust[i]++
+		if g.countForce[i] < gyrCalForceBatchesCount {
+			g.countForce[i]++
 		}
 	}
 	g.correctionSum[i] = 0

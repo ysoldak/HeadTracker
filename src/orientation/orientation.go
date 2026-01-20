@@ -110,7 +110,7 @@ func (o *Orientation) SetOffsets(offsets [3]int32) {
 		return
 	}
 	// calibration shall skip aggressive first force adjustments when data is non-zero
-	o.imu.gyrCal.countAdjust[0] = gyrCalForceAdjustment + 1
-	o.imu.gyrCal.countAdjust[1] = gyrCalForceAdjustment + 1
-	o.imu.gyrCal.countAdjust[2] = gyrCalForceAdjustment + 1
+	o.imu.gyrCal.countForce[0] = gyrCalForceBatchesCount + 1
+	o.imu.gyrCal.countForce[1] = gyrCalForceBatchesCount + 1
+	o.imu.gyrCal.countForce[2] = gyrCalForceBatchesCount + 1
 }
