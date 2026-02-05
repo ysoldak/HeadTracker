@@ -24,17 +24,17 @@ const (
 
 	// axis mapping (3 bytes) - one byte per axis
 	//
-	// each byte has format: 0b00IE0OOO where
+	// each byte has format: 0b00IEOOOO where
 	// - '0'   bit is not used,
 	// - 'I'   bit for inverted(1)/not inverted(0),
 	// - 'E'   bit for enabled(1)/disabled(0)
-	// - 'OOO' three bits for channel index offset (0-7),
+	// - 'OOOO' four bits for channel index offset (0-15),
 	//
 	// examples:
-	// - 0x10 means axis mapped to channel 1 (offset 0), enabled,  not inverted
-	// - 0x11 means axis mapped to channel 2 (offset 1), enabled,  not inverted
-	// - 0x25 means axis mapped to channel 6 (offset 5), disabled, inverted
-	// - 0x34 means axis mapped to channel 5 (offset 4), enabled,  inverted
+	// - 0x10 means axis mapped to channel  1 (offset  0), enabled,  not inverted
+	// - 0x1A means axis mapped to channel 11 (offset 10), enabled,  not inverted
+	// - 0x25 means axis mapped to channel  6 (offset  5), disabled, inverted
+	// - 0x34 means axis mapped to channel  5 (offset  4), enabled,  inverted
 	//
 	// default mapping value: "0x101112" or "16 17 18" (first 3 channels, enabled, not inverted)
 	CHAR_DATA_AXIS_MAPPING = 0xFFD2
@@ -52,11 +52,12 @@ type Para struct {
 
 	callbackHandler CallbackHandler
 
-	buffer    [20]byte
+	buffer    [36]byte
 	sendAfter time.Time
 
-	paired   bool
-	channels [8]uint16
+	paired         bool
+	channels       [16]uint16
+	activeChannels int
 
 	remote ParaRemote
 }
@@ -95,7 +96,8 @@ func NewPara(name string, axisMapping [3]byte, callbackHandler CallbackHandler) 
 		adapter:         bluetooth.DefaultAdapter,
 		callbackHandler: callbackHandler,
 		paired:          false,
-		channels:        [8]uint16{1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500},
+		channels:        [16]uint16{1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500},
+		activeChannels:  8,
 		remote: ParaRemote{
 			nameChanged:        false,
 			nameLength:         byte(len(name)),
@@ -106,7 +108,21 @@ func NewPara(name string, axisMapping [3]byte, callbackHandler CallbackHandler) 
 	for i := 0; i < len(name) && i < 16; i++ {
 		para.remote.nameValue[i] = byte(name[i])
 	}
+	para.calcActiveChannels()
 	return &para
+}
+
+func (t *Para) calcActiveChannels() {
+	t.activeChannels = 8
+	for i := 0; i < 3; i++ {
+		mappingByte := t.remote.axisMappingValue[i]
+		enabled := (mappingByte & 0x10) == 0x10
+		channelIndex := int(mappingByte & 0x0F)
+		if enabled && channelIndex+1 > t.activeChannels {
+			t.activeChannels = 16
+			break
+		}
+	}
 }
 
 func (t *Para) Start() string {
@@ -318,6 +334,7 @@ func (t *Para) Start() string {
 			if t.remote.axisMappingChanged {
 				t.remote.axisMappingChanged = false
 				t.callbackHandler.OnAxisMappingChange(t.remote.axisMappingValue)
+				t.calcActiveChannels()
 			}
 		}
 	}()
@@ -347,7 +364,7 @@ func (p *Para) SetChannel(n int, v uint16) {
 
 // -- PARA Protocol ------------------------------------------------------------
 
-// 2 + 8(max 16) + 2
+// 2 + 16(max 32) + 2
 
 const START_STOP byte = 0x7E
 const BYTE_STUFF byte = 0x7D
@@ -374,7 +391,7 @@ func (t *Para) encode() byte {
 	t.buffer[bufferIndex] = START_STOP
 	bufferIndex++
 	t.push(0x80, &bufferIndex, &crc)
-	for channel := 0; channel < 8; channel += 2 {
+	for channel := 0; channel < t.activeChannels; channel += 2 {
 		channelValue1 := t.channels[channel]
 		channelValue2 := t.channels[channel+1]
 		t.push(byte(channelValue1&0x00ff), &bufferIndex, &crc)
