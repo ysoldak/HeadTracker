@@ -71,6 +71,8 @@ Also available [fully assembled or as a kit on our shop](https://skygadgets.shop
 
 ## Wiring reference
 - **D2**: Orientation reset pin, use a button that connects this pin to **GND**
+  - Press the button while head tracker is running to *reset its orientation*
+  - Hold the button pressed on the head tracker power up to *factory reset* the board
 - **D8**: PPM mode activation pin, solder it permanently to **GND** or use a positional switch
 - **D10**: PPM signal pin, connect it to an audio jack tip and **GND** to the jack body
 - **SDA&SCL**: I2C communication pins, connect them to 128x32 SSD1306 screen
@@ -128,6 +130,41 @@ Keep **reset orientation** button pressed on power up to **discard calibration p
 ### Display
 If you have a LED `128x32` display added you your board (via I2C), the board's bluetooth address is displayed on it. Blinking ":" symbols indicate bluetooth connection status, like blue led. Upon start, while gyroscope is calibrating, you shall see head tracker version briefly on the screen. The version is then replaced by 3 horisonal bars, one for each axis: pan, tilt and roll.
 
+### Bluetooth remote control (from v2.7.0)
+
+The head tracker can be controlled remotely.  
+Use [nRF Connect for Desktop](https://www.nordicsemi.com/Products/Development-tools/nRF-Connect-for-Desktop) or [nRF Connect for Mobile](https://www.nordicsemi.com/Products/Development-tools/nRF-Connect-for-mobile) to connect to your head tracker and send commands or do advanced configuration.
+
+#### Send commands (0xFFC1)
+
+Bluetooth characteristic `0xFFC1` (alt. `0xAFF2`) accepts following one-character commands:
+- **Reset orientation** of the board by writing `R` to the characteristic;
+- **Factory reset** the board by writing `F` to the characteristic;
+- **Reboot** the board by writing `B` to the characteristic.
+
+#### Set device name (0xFFD1)
+
+Set device name by writing up to 16 bytes to `0xFFD1` characteristic.  
+Default head tracker device name is "Hello".
+
+#### Configure axes to channels mapping (0xFFD2)
+
+Configure axes to channels mapping by writing 3 bytes to `0xFFD2` characteristic.
+First (leftmost) byte configures mapping of the first axis to a channel, and so on. 
+
+Each byte has format: `00IE0OOO`
+- `0`   bit is not used,
+- `I`   bit for inverted(1)/not inverted(0),
+- `E`   bit for enabled(1)/disabled(0)
+- `OOO` three bits for channel index offset (0-7),
+
+Examples
+- `0x10` means axis mapped to channel 1 (offset 0), enabled,  not inverted
+- `0x11` means axis mapped to channel 2 (offset 1), enabled,  not inverted
+- `0x25` means axis mapped to channel 6 (offset 5), disabled, inverted
+- `0x34` means axis mapped to channel 5 (offset 4), enabled,  inverted
+
+Default mapping: `0x101112` -- first 3 channels, enabled, not inverted
 
 ## Connect to radio
 
