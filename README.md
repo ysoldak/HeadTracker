@@ -12,7 +12,12 @@ This project would not exist without [awesome work](https://github.com/tinygo-or
   - Double tap on `RST` button on the board (little one, near USB-C plug), `XIAO-SENSE` USB drive pops up
   - Download `ht_xiao-ble_x.x.x.uf2` from latest [release](https://github.com/ysoldak/HeadTracker/releases)
   - Copy the file to `XIAO-SENSE` USB drive
+  - _Ignore operating system panic about USB drive was not properly ejected -- this is normal and expected_
   - USB drive disconnects itself and reboots (congrats! now you have your head tracker!)
+- **Verify it works**
+  - Re-connect XIAO BLE Sense board to your computer (Unplug and plug back again)
+  - Open https://www.serialmonitor.org in Goggle Chrome browser and Connect to the board
+  - Watch Head Tracker prints its status periodically (firmare version, bluetooth address and orientation)
 - **Connect to your radio**
   - Pick up your radio with wireless trainer link (PARA, Bluetooth)  
     _all recent FrSky radios have wireless trainer that works; other radios may require [PARA Wireless module](https://www.horusrc.com/en/frsky-horus-x10-para-wireless-module.html) installed_
